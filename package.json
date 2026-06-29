@@ -1,0 +1,57 @@
+{
+  "name": "pokemon-desktop-pet",
+  "version": "1.1.0",
+  "description": "바탕화면을 돌아다니는 도트 포켓몬 데스크톱 펫 + 배틀룸 (Electron)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pet": "electron .",
+    "build-dex": "node build-dex.js",
+    "dist": "electron-builder --win",
+    "dist:dir": "electron-builder --win --dir",
+    "dist:mac": "electron-builder --mac"
+  },
+  "author": "",
+  "license": "MIT",
+  "build": {
+    "appId": "com.jayjun.pokemonroom",
+    "productName": "PokemonBattleRoom",
+    "artifactName": "PokemonBattleRoom-${version}-${arch}.${ext}",
+    "directories": { "output": "dist" },
+    "files": [
+      "**/*",
+      "!docs/**",
+      "!build-dex.js",
+      "!build-learnsets.js",
+      "!generate-icon.js",
+      "!**/*.vbs",
+      "!**/*.bat",
+      "!electron-run.log",
+      "!README.md",
+      "!pokedex.json",
+      "!gamedata.json",
+      "!dist/**"
+    ],
+    "win": {
+      "target": ["nsis"],
+      "icon": "icon.png"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "icon": "icon512.png",
+      "category": "public.app-category.games"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "포켓몬 배틀룸",
+      "deleteAppDataOnUninstall": false
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  }
+}

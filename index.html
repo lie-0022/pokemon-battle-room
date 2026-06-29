@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' https: data:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self';" />
+<title>포켓몬스터 — 전국도감 배틀</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <h1>포켓몬스터 <span class="sub">전국도감 배틀 · 실데이터(PokéAPI)</span></h1>
+      <div class="trainer-info">
+        <span class="pokeball-count">🔴 <b id="ball-count">5</b></span>
+        <span class="dex-count">📖 <b id="dex-count">0</b>/<b id="dex-total">151</b></span>
+      </div>
+    </header>
+
+    <!-- 로딩 -->
+    <section id="screen-loading" class="screen active">
+      <div class="loading">
+        <div class="loading-ball">🔴</div>
+        <p id="loading-text">전국도감 데이터를 불러오는 중...</p>
+      </div>
+    </section>
+
+    <!-- 시작: 스타팅 선택 -->
+    <section id="screen-start" class="screen">
+      <h2>오박사: 어서 와요! 첫 파트너를 골라보세요.</h2>
+      <div id="starter-list" class="starter-list"></div>
+    </section>
+
+    <!-- 마을/필드 -->
+    <section id="screen-field" class="screen">
+      <div class="field-art" id="field-art"></div>
+      <p class="field-desc" id="field-desc">풀숲이 바스락거립니다. 무언가 나타날지도 몰라요.</p>
+      <div class="field-actions">
+        <button id="btn-explore" class="btn big">🌿 풀숲 탐험하기</button>
+        <button id="btn-party" class="btn">👥 파티</button>
+        <button id="btn-dex" class="btn">📖 도감</button>
+        <button id="btn-heal" class="btn">💊 회복센터</button>
+      </div>
+      <div id="party-strip" class="party-strip"></div>
+    </section>
+
+    <!-- 배틀 -->
+    <section id="screen-battle" class="screen">
+      <div class="battle-stage">
+        <div class="enemy-side">
+          <div class="status-box enemy">
+            <div class="name-row"><span class="mon-name" id="enemy-name"></span><span class="mon-lv" id="enemy-lv"></span></div>
+            <div class="hpbar"><div class="hpfill" id="enemy-hpfill"></div></div>
+            <div class="hp-text" id="enemy-hp"></div>
+          </div>
+          <div class="sprite enemy-sprite" id="enemy-sprite"></div>
+        </div>
+        <div class="player-side">
+          <div class="sprite player-sprite" id="player-sprite"></div>
+          <div class="status-box player">
+            <div class="name-row"><span class="mon-name" id="player-name"></span><span class="mon-lv" id="player-lv"></span></div>
+            <div class="hpbar"><div class="hpfill" id="player-hpfill"></div></div>
+            <div class="hp-text" id="player-hp"></div>
+            <div class="xpbar"><div class="xpfill" id="player-xpfill"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="battle-ui">
+        <div class="log" id="battle-log"></div>
+        <div class="menu" id="battle-menu">
+          <div class="menu-grid" id="menu-main">
+            <button class="btn" data-act="fight">⚔️ 싸운다</button>
+            <button class="btn" data-act="ball">🔴 몬스터볼</button>
+            <button class="btn" data-act="switch">🔄 교체</button>
+            <button class="btn" data-act="run">🏃 도망</button>
+          </div>
+          <div class="menu-grid hidden" id="menu-moves"></div>
+          <div class="menu-grid hidden" id="menu-switch"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 파티 화면 -->
+    <section id="screen-party" class="screen">
+      <h2>👥 내 포켓몬</h2>
+      <div id="party-full" class="party-full"></div>
+      <button id="btn-party-back" class="btn big">⬅ 돌아가기</button>
+    </section>
+
+    <!-- 도감 화면 -->
+    <section id="screen-dex" class="screen">
+      <div class="dex-head">
+        <h2>📖 전국도감</h2>
+        <button id="btn-dex-back" class="btn">⬅ 돌아가기</button>
+      </div>
+      <div id="dex-grid" class="dex-grid"></div>
+    </section>
+  </div>
+
+  <!-- 도감 상세 모달 -->
+  <div id="dex-modal" class="modal hidden">
+    <div class="modal-card" id="dex-modal-card"></div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- 데이터: 임베드(pokedex.js)가 있으면 더블클릭(file://)으로도 실행됨.
+       없으면 game.js가 pokedex.json 을 fetch 로 불러온다(서버 필요). -->
+  <script src="pokedex.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

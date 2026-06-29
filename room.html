@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' https: data:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self';" />
+<link rel="stylesheet" href="room.css" />
+</head>
+<body>
+  <div id="room">
+    <!-- 상단바 (드래그로 창 이동) -->
+    <div id="topbar">
+      <span class="title">⚔️</span>
+      <span class="stat">💰<b id="gold">0</b></span>
+      <span class="stat loc">🗺<b id="loc">관동 · R1 · 1/8</b></span>
+      <span class="stat">🎖<b id="badges">0</b></span>
+      <span class="spacer"></span>
+      <button class="tabbtn speed" id="speed-btn" title="전투 배속 (클릭 전환)">⏩×1</button>
+      <button class="tabbtn" id="tab-party" title="파티·기술 세팅">🦸</button>
+      <button class="tabbtn" id="tab-bag" title="가방·장비 장착">🎒</button>
+      <button class="tabbtn" id="tab-shop" title="상점(구매·판매)">🛒</button>
+      <button class="tabbtn" id="tab-dex" title="도감 수집">📖</button>
+      <button class="tabbtn" id="tab-roadmap" title="로드맵 (지방·루트·진행)">🗺</button>
+    </div>
+
+    <!-- 상단바 아래 콘텐츠 영역 (패널은 이 영역만 덮어 상단바와 겹치지 않음) -->
+    <div id="content">
+    <!-- 전투 무대 -->
+    <div id="arena">
+      <div class="parallax" id="bg"></div>
+      <div class="floor"></div>
+      <div id="heroes"></div>     <!-- 내 파티(최대 3) — JS가 채움 -->
+      <div id="enemies"></div>    <!-- 적 — JS가 채움 -->
+      <div id="fx"></div>
+      <div id="log" class="log"></div>
+      <div id="banner" class="banner hidden"></div>
+    </div>
+
+    <!-- 상점/업그레이드 -->
+    <div id="shop">
+      <button class="up" data-up="atk">
+        <span class="up-ico">⚔️</span><span class="up-label">공격<br><b id="lv-atk">0</b></span><span class="cost" id="cost-atk">10</span>
+      </button>
+      <button class="up" data-up="hp">
+        <span class="up-ico">❤️</span><span class="up-label">체력<br><b id="lv-hp">0</b></span><span class="cost" id="cost-hp">10</span>
+      </button>
+      <button class="up" data-up="spd" title="공격 속도 — 높을수록 더 자주 공격하고 선공 확률↑">
+        <span class="up-ico">⚡</span><span class="up-label">공속<br><b id="lv-spd">0</b></span><span class="cost" id="cost-spd">10</span>
+      </button>
+    </div>
+
+    <!-- 패널 오버레이 (트리/도감) -->
+    <div id="panel" class="panel hidden">
+      <div class="panel-head"><span id="panel-title"></span><button id="panel-close">✕</button></div>
+      <div id="panel-body"></div>
+    </div>
+    </div><!-- /#content -->
+
+    <!-- 캐릭터(스타터) 선택 오버레이 -->
+    <div id="charselect" class="charselect hidden"></div>
+
+    <!-- 커스텀 리사이즈 그립 (좌하단 — 창은 오른쪽 아래 도킹) -->
+    <div id="grip" title="드래그해서 크기 조절"></div>
+  </div>
+
+  <script src="pokedex.js"></script>
+  <script src="gamedata.js"></script>
+  <script src="room.js"></script>
+</body>
+</html>

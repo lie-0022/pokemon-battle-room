@@ -1,0 +1,231 @@
+:root {
+  --bg: #1b2838;
+  --panel: #243447;
+  --panel-2: #2e4256;
+  --ink: #eef3f8;
+  --muted: #9fb3c8;
+  --accent: #ffcb05;
+  --accent-2: #3d7dca;
+  --danger: #e3350d;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: "Segoe UI", "Malgun Gothic", system-ui, sans-serif;
+  background: linear-gradient(160deg, #20364d, #14202e);
+  color: var(--ink);
+  min-height: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+}
+
+#app {
+  width: 100%;
+  max-width: 560px;
+  background: var(--panel);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.06);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- 상단바 ---------- */
+.topbar {
+  background: linear-gradient(90deg, var(--accent-2), #2a5a96);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 4px solid var(--accent);
+  gap: 8px;
+}
+.topbar h1 { font-size: 17px; margin: 0; letter-spacing: .5px; }
+.topbar h1 .sub { font-size: 10px; opacity: .8; font-weight: 400; display:block; }
+.trainer-info { display: flex; gap: 12px; align-items: center; font-size: 13px; white-space: nowrap; }
+.trainer-info b { color: var(--accent); }
+
+/* ---------- 화면 ---------- */
+.screen { display: none; padding: 18px; animation: fade .3s ease; }
+.screen.active { display: block; }
+@keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
+h2 { font-size: 16px; margin: 4px 0 16px; line-height: 1.5; }
+
+/* ---------- 로딩 ---------- */
+.loading { text-align: center; padding: 60px 0; }
+.loading-ball { font-size: 56px; animation: spin 1.1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#loading-text { color: var(--muted); margin-top: 14px; font-size: 14px; }
+
+/* ---------- 버튼 ---------- */
+.btn {
+  font-family: inherit; font-size: 14px; color: var(--ink);
+  background: var(--panel-2); border: 2px solid rgba(255,255,255,.12);
+  border-radius: 10px; padding: 10px 14px; cursor: pointer;
+  transition: transform .08s, background .15s, border-color .15s;
+}
+.btn:hover:not(:disabled) { background: #38506a; transform: translateY(-1px); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn.big { width: 100%; padding: 14px; font-size: 16px; font-weight: 600; margin-top: 6px; }
+
+img.pkimg, .starter-img, .chip-img, .sw-img, .mon-card-img, .dex-img, .modal-img {
+  image-rendering: pixelated;
+}
+
+/* ---------- 스타팅 ---------- */
+.starter-list { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.starter-card {
+  background: var(--panel-2); border: 2px solid var(--mon, #555);
+  border-radius: var(--radius); padding: 12px 8px; text-align: center;
+}
+.starter-img { width: 92px; height: 92px; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0,0,0,.4)); }
+.starter-name { font-weight: 700; margin: 4px 0 2px; }
+.dex-no { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.starter-note { font-size: 11px; color: var(--muted); min-height: 46px; margin: 8px 0; }
+.starter-card .pick { width: 100%; background: var(--mon); border-color: transparent; color: #1a1a1a; font-weight: 700; }
+@media (max-width: 480px) {
+  .starter-list { grid-template-columns: 1fr; }
+  .starter-note { min-height: 0; }
+}
+
+.type-row { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
+.type-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; color: #fff; font-weight: 700; text-shadow: 0 1px 1px rgba(0,0,0,.4); }
+
+/* ---------- 필드 ---------- */
+.field-art {
+  font-size: 40px; text-align: center; letter-spacing: 6px;
+  background: linear-gradient(180deg, #2e7d32, #1b5e20);
+  border-radius: var(--radius); padding: 28px 0; margin-bottom: 10px;
+  box-shadow: inset 0 0 30px rgba(0,0,0,.3);
+}
+.field-desc { color: var(--muted); font-size: 13px; text-align: center; margin: 6px 0 16px; }
+.field-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.field-actions .big { grid-column: 1 / -1; background: linear-gradient(90deg, #2e7d32, #43a047); border-color: transparent; }
+
+.party-strip { margin-top: 16px; display: grid; gap: 8px; }
+.party-chip {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--panel-2); border-radius: 10px; padding: 6px 12px;
+  border-left: 4px solid var(--accent);
+}
+.party-chip.fainted { opacity: .45; border-left-color: var(--danger); }
+.chip-img { width: 46px; height: 46px; object-fit: contain; }
+.chip-info { font-size: 12px; line-height: 1.4; flex: 1; }
+.mini-hp { display: block; height: 6px; background: rgba(255,255,255,.15); border-radius: 4px; overflow: hidden; margin-top: 3px; }
+.mini-hp > span { display: block; height: 100%; background: #4caf50; }
+
+/* ---------- 배틀 ---------- */
+.battle-stage {
+  background: linear-gradient(180deg, #87a7c4 0%, #b9d6e8 55%, #9ccc65 55%, #7cb342 100%);
+  border-radius: var(--radius); padding: 16px; position: relative;
+  min-height: 250px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
+}
+.enemy-side { display: flex; flex-direction: row-reverse; align-items: flex-start; gap: 10px; }
+.player-side { display: flex; align-items: flex-end; gap: 10px; margin-top: 10px; }
+
+.status-box {
+  background: rgba(20,30,42,.9); color: #fff; border-radius: 10px;
+  padding: 8px 12px; min-width: 190px; box-shadow: 0 3px 8px rgba(0,0,0,.3);
+}
+.status-box.player { margin-bottom: 4px; }
+.name-row { display: flex; justify-content: space-between; align-items: baseline; }
+.mon-name { font-weight: 700; font-size: 14px; }
+.mon-lv { font-size: 11px; color: var(--muted); }
+.hpbar { height: 9px; background: rgba(255,255,255,.18); border-radius: 6px; overflow: hidden; margin: 5px 0 3px; }
+.hpfill { height: 100%; width: 100%; background: #4caf50; transition: width .4s ease, background .4s; }
+.hp-text { font-size: 11px; text-align: right; color: var(--muted); }
+.xpbar { height: 4px; background: rgba(255,255,255,.15); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.xpfill { height: 100%; width: 0%; background: var(--accent-2); transition: width .4s ease; }
+
+.sprite { line-height: 0; transition: transform .15s; }
+.sprite .pkimg { width: 96px; height: 96px; object-fit: contain; filter: drop-shadow(0 6px 6px rgba(0,0,0,.3)); }
+.enemy-sprite { animation: bobE 2.4s ease-in-out infinite; }
+.player-sprite { animation: bobP 2.4s ease-in-out infinite; }
+@keyframes bobE { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+@keyframes bobP { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+.sprite.hit { animation: shake .2s; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px); opacity:.5} 75%{transform:translateX(7px)} }
+
+/* ---------- 배틀 UI ---------- */
+.battle-ui { margin-top: 12px; }
+.log {
+  background: #0f1925; border: 2px solid rgba(255,255,255,.1); border-radius: 10px;
+  padding: 10px 12px; height: 92px; overflow-y: auto; font-size: 13px; line-height: 1.6; margin-bottom: 10px;
+}
+.log-line { animation: fade .2s ease; }
+.menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.menu-grid.hidden { display: none; }
+.move-btn { display: flex; justify-content: space-between; align-items: center; border-width: 2px; gap: 8px; }
+.mv-name { font-weight: 600; }
+.mv-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.move-type { font-size: 9px; padding: 2px 6px; border-radius: 8px; color: #fff; font-weight: 700; }
+.mv-pp { font-size: 9px; color: var(--muted); }
+.back-btn { grid-column: 1 / -1; background: #1c2a3a; }
+.switch-btn { display: flex; align-items: center; gap: 8px; text-align: left; }
+.switch-btn .sw-img { width: 36px; height: 36px; object-fit: contain; }
+.switch-btn small { color: var(--muted); }
+.switch-btn.active { border-color: var(--accent); }
+.switch-btn.fainted { opacity: .4; }
+
+/* ---------- 파티 풀 ---------- */
+.party-full { display: grid; gap: 12px; margin-bottom: 14px; }
+.mon-card { background: var(--panel-2); border-radius: var(--radius); border-left: 5px solid var(--mon, var(--accent)); padding: 12px 14px; }
+.mon-card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.mon-card-img { width: 72px; height: 72px; object-fit: contain; }
+.mon-card-name { font-weight: 700; font-size: 15px; }
+.mon-card-name small { color: var(--muted); font-weight: 400; }
+.stat-grid { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin: 8px 0; }
+.move-list { display: flex; gap: 6px; flex-wrap: wrap; }
+.mini-move { font-size: 10px; padding: 3px 8px; border-radius: 8px; color: #fff; font-weight: 600; }
+
+/* ---------- 전국도감 ---------- */
+.dex-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.dex-head h2 { margin: 0; }
+.dex-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-height: 70vh; overflow-y: auto; padding-right: 4px; }
+.dex-cell {
+  background: var(--panel-2); border-radius: 10px; padding: 6px 4px 8px; text-align: center;
+  position: relative; border: 2px solid transparent; cursor: pointer; transition: transform .1s, border-color .15s;
+}
+.dex-cell.seen:hover, .dex-cell.caught:hover { transform: translateY(-2px); border-color: var(--accent); }
+.dex-cell.unknown { opacity: .55; cursor: default; }
+.dex-cell.unknown .dex-img { filter: brightness(0) opacity(.35); }
+.dex-cell.caught { border-color: rgba(255,203,5,.5); }
+.dex-no-sm { font-size: 9px; color: var(--muted); }
+.dex-img { width: 56px; height: 56px; object-fit: contain; }
+.dex-name { font-size: 11px; font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dex-mark { position: absolute; top: 4px; right: 6px; font-size: 11px; }
+@media (max-width: 480px) { .dex-grid { grid-template-columns: repeat(3, 1fr); } }
+
+/* ---------- 모달 ---------- */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; animation: fade .2s; }
+.modal.hidden { display: none; }
+.modal-card { background: var(--panel); border-radius: 18px; width: 100%; max-width: 380px; padding: 18px; position: relative; border: 1px solid rgba(255,255,255,.1); box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+.modal-close { position: absolute; top: 10px; right: 12px; background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; }
+.modal-top { display: flex; align-items: center; gap: 14px; padding: 10px; border-radius: 12px; background: linear-gradient(135deg, var(--mon), transparent 140%); margin-bottom: 14px; }
+.modal-img { width: 96px; height: 96px; object-fit: contain; }
+.modal-top h3 { margin: 4px 0 6px; font-size: 20px; }
+.modal-stats { display: grid; gap: 6px; margin-bottom: 12px; }
+.stat-row { display: grid; grid-template-columns: 48px 1fr 32px; align-items: center; gap: 8px; font-size: 12px; }
+.stat-bar { height: 8px; background: rgba(255,255,255,.12); border-radius: 5px; overflow: hidden; }
+.stat-bar > span { display: block; height: 100%; border-radius: 5px; }
+.stat-row b { text-align: right; }
+.bst { grid-column: 1 / -1; text-align: right; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.bst b { color: var(--accent); font-size: 14px; }
+.modal-moves { font-size: 12px; color: var(--muted); line-height: 1.6; border-top: 1px solid rgba(255,255,255,.08); padding-top: 10px; }
+.modal-evo { font-size: 12px; margin-top: 8px; color: var(--ink); }
+.modal-evo b { color: var(--accent); }
+
+/* ---------- 토스트 ---------- */
+.toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px);
+  background: #0f1925; color: #fff; padding: 12px 20px; border-radius: 12px;
+  border: 2px solid var(--accent); font-size: 13px; opacity: 0; pointer-events: none;
+  transition: opacity .25s, transform .25s; box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  max-width: 90%; text-align: center; z-index: 60;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }

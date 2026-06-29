@@ -1,0 +1,52 @@
+name: Build (Windows + macOS)
+
+# 수동 실행(Actions 탭 → Run workflow) 또는 v* 태그 푸시 시 빌드
+on:
+  workflow_dispatch: {}
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write   # 태그 푸시 시 릴리스 생성
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            build: npm run dist          # NSIS .exe
+          - os: macos-latest
+            build: npm run dist:mac       # .dmg + .zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install deps
+        run: npm install
+      - name: Build
+        run: ${{ matrix.build }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false   # 코드 서명 안 함(미서명 배포)
+      # Actions 실행 페이지에서 내려받을 수 있는 산출물
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-installer
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.zip
+          if-no-files-found: warn
+      # v* 태그로 실행됐을 때만: 깃허브 릴리스에 설치본 첨부
+      - name: Publish release (on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.zip
