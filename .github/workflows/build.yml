@@ -16,9 +16,9 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            build: npm run dist          # NSIS .exe
+            build: npx electron-builder --win --publish never     # NSIS .exe
           - os: macos-latest
-            build: npm run dist:mac       # .dmg + .zip
+            build: npx electron-builder --mac --publish never      # .dmg + .zip
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
