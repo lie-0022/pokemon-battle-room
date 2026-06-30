@@ -48,7 +48,7 @@ function typeEffect(moveType, defTypes) {
 }
 const krType = (t) => DEX.typeKr[t] || t;
 const typeColor = (t) => DEX.typeColor[t] || '#888';
-const xpToNext = (lv) => 20 + lv * lv * 2;
+const xpToNext = (lv) => 30 + lv * 8;   // 선형 곡선 → 파티 레벨이 적 레벨(지방당 +20)을 따라감(키운 팀 유지 가능)
 
 // ---------- 기술/러닝셋 ----------
 function learnUpTo(en, lv) {
@@ -312,7 +312,7 @@ function defaultState() {
     up: { atk: 0, hp: 0, spd: 0 },
     trainer: { atk: 0, hp: 0, gold: 0, xp: 0, crit: 0, slot: 0 },
     dex: { kills: {} },
-    prog: { region: 0, route: 1, wave: 1, clears: 0, maxClears: 0, badges: 0 },
+    prog: { region: 0, route: 1, wave: 1, clears: 0, maxClears: 0, badges: 0, maxRegion: 0 },
     lastSeen: Date.now(),
   };
 }
@@ -323,6 +323,7 @@ function loadState() {
       if (s && s.version >= 2 && Array.isArray(s.party) && s.party.length) {
         s.up = s.up || { atk: 0, hp: 0, spd: 0 };
         if (!s.prog) s.prog = { region: 0, route: 1, wave: 1, clears: 0, maxClears: 0, badges: 0 };
+        s.prog.maxRegion = Math.max(s.prog.maxRegion || 0, s.prog.region || 0);   // 최전선(이전 맵 이동 해금 기준)
         s.candy = s.candy || 0;
         s.trainer = s.trainer || { atk: 0, hp: 0, gold: 0, xp: 0, crit: 0, slot: 0 };
         s.dex = s.dex || { kills: {} };
@@ -554,7 +555,12 @@ function enemyDefeated() {
 
   state.party.forEach((m) => gainXp(m, xp));
 
-  if (kind === 'champion') { p.region++; p.route = 1; p.wave = 1; p.badges++; heroes.forEach(healHero); banner(`🎉 챔피언 격파! ${regionName(p.region)} 입성 · 🎖${p.badges}!`); }
+  if (kind === 'champion') {
+    const frontier = p.region >= (p.maxRegion || 0);   // 최전선 챔피언일 때만 배지·해금
+    p.region++; p.route = 1; p.wave = 1; heroes.forEach(healHero);
+    if (frontier) { p.maxRegion = p.region; p.badges++; banner(`🎉 챔피언 격파! ${regionName(p.region)} 입성 · 🎖${p.badges}!`); }
+    else banner(`✅ ${regionName(p.region)}(으)로 진행 (이미 정복한 지방 — 배지 없음)`);
+  }
   else if (kind === 'boss') { p.route++; p.wave = 1; banner(`✅ 루트 클리어! ${regionName(p.region)} R${p.route}`); }
   else p.wave++;
   p.clears++; p.maxClears = Math.max(p.maxClears, p.clears);
@@ -566,7 +572,7 @@ const partyAvgLv = () => state.party.length ? Math.round(state.party.reduce((s, 
 function catchSpecies(en, lv) {
   // 중복 허용. 벤치 가득 차면 미획득. 파티 자동 합류 X — 항상 벤치에 보관(직접 세팅해야 파티 합류)
   if (state.bench.length >= BENCH_MAX) return;
-  const joinLv = clamp(Math.max(lv, partyAvgLv()), 5, 999);   // 파티 평균 수준으로(레벨차 최소화)
+  const joinLv = clamp(Math.min(lv, partyAvgLv()), 5, 999);   // 내 파티 수준으로, 단 잡은 지역 레벨은 넘지 않게(이전맵 farming 악용 방지)
   const m = newMember(en, joinLv);
   evolveToEligible(m);
   state.bench.push(m);
@@ -630,7 +636,14 @@ function manualEvolve(member) {   // 🦸 창에서 수동 진화(이미 레벨 
 function partyWipe() {
   banner('💀 파티 전멸! 회복 중...');
   pauseUntil = performance.now() + 2000 / SPD();
-  const p = state.prog; p.wave = Math.max(1, Math.min(p.wave, WAVES_PER_ROUTE) - 2);
+  const p = state.prog;
+  if (p.route > ROUTES_PER_REGION) {            // 챔피언 패배 → 마지막 루트(R6) 후반 웨이브로 복귀(파밍·재정비 가능)
+    p.route = ROUTES_PER_REGION; p.wave = Math.max(1, WAVES_PER_ROUTE - 2);
+  } else if (p.wave > WAVES_PER_ROUTE) {         // 보스 패배 → 일반 웨이브로
+    p.wave = Math.max(1, WAVES_PER_ROUTE - 2);
+  } else {                                       // 일반 웨이브 패배 → 2칸 뒤로
+    p.wave = Math.max(1, p.wave - 2);
+  }
   if (enemy) { enemy.el.remove(); enemy = null; }
   spawnAt = pauseUntil + 200 / SPD();
   setTimeout(() => { heroes.forEach(healHero); updateFront(); updateHud(); }, 2000 / SPD());
@@ -845,18 +858,28 @@ function rmNextGoal() {
   if (p.wave > WAVES_PER_ROUTE) return `다음 목표: R${p.route} 보스 격파 → R${p.route + 1}`;
   return `다음 목표: R${p.route} ${p.wave}/${WAVES_PER_ROUTE} 클리어 → R${p.route} 보스`;
 }
+function travelTo(r) {   // 정복했거나 개방된 지방으로 이동(파밍/재정비)
+  const mx = state.prog.maxRegion || 0;
+  if (r < 0 || r > mx || r === state.prog.region) return;
+  state.prog.region = r; state.prog.route = 1; state.prog.wave = 1;
+  if (enemy) { enemy.el.remove(); enemy = null; }
+  spawnAt = performance.now() + 300 / SPD();
+  banner(`🗺 ${regionName(r)}(으)로 이동!`);
+  updateHud(); if (panelOpen === 'map') renderRoadmap(); save();
+}
 function renderRoadmap() {
-  const p = state.prog;
+  const p = state.prog, mx = p.maxRegion || 0;
   $('panel-title').textContent = `🗺 로드맵 · 🎖${p.badges}`;
-  const maxR = Math.max(REGIONS.length - 1, p.region);
+  const maxR = Math.max(REGIONS.length - 1, mx, p.region);
   let html = `<div class="rm-now">📍 현재 <b>${locLabel()}</b><div class="rm-goal">${rmNextGoal()}</div></div><div class="rm-list">`;
   for (let r = 0; r <= maxR; r++) {
-    const rst = p.region > r ? 'done' : p.region === r ? 'cur' : 'todo';
-    const rico = rst === 'done' ? '✅' : rst === 'cur' ? '▶️' : '🔒';
-    html += `<div class="rm-region ${rst}"><div class="rm-rhead"><span>${rico} ${r + 1}. ${regionName(r)}</span><span class="rm-champ">🏆 ${champName(r)}</span></div><div class="rm-routes">`;
+    const cleared = r < mx, isCur = r === p.region, unlocked = r <= mx;
+    const rico = isCur ? '▶️' : cleared ? '✅' : (r === mx ? '🚩' : '🔒');
+    const travelBtn = (unlocked && !isCur) ? `<button class="rm-travel" data-travel="${r}">▶ 이동</button>` : '';
+    html += `<div class="rm-region ${isCur ? 'cur' : cleared ? 'done' : 'todo'}"><div class="rm-rhead"><span>${rico} ${r + 1}. ${regionName(r)}</span><span class="rm-champ">🏆 ${champName(r)}${travelBtn}</span></div><div class="rm-routes">`;
     for (let rt = 1; rt <= ROUTES_PER_REGION; rt++) {
-      const routeDone = p.region > r || (p.region === r && p.route > rt);
-      const routeCur = p.region === r && p.route === rt;
+      const routeDone = cleared || (isCur && p.route > rt);
+      const routeCur = isCur && p.route === rt;
       let dots = '';
       for (let w = 1; w <= WAVES_PER_ROUTE; w++) {
         const wd = routeDone || (routeCur && p.wave > w);
@@ -866,11 +889,12 @@ function renderRoadmap() {
       const bd = routeDone, bc = routeCur && p.wave > WAVES_PER_ROUTE;
       html += `<div class="rm-route ${routeDone ? 'done' : routeCur ? 'cur' : 'todo'}"><span class="rm-rn">R${rt}</span><span class="rm-dots">${dots}</span><span class="rm-boss ${bd ? 'd' : bc ? 'c' : ''}" title="루트 보스">👑</span></div>`;
     }
-    const cd = p.region > r, cc = p.region === r && p.route > ROUTES_PER_REGION;
-    html += `</div><div class="rm-champline ${cd ? 'done' : cc ? 'cur' : 'todo'}">${cd ? '✅' : cc ? '🏆' : '🔒'} 챔피언전 — 승리 시 🎖배지 +1 · 다음 지방</div></div>`;
+    const cd = cleared, cc = isCur && p.route > ROUTES_PER_REGION;
+    html += `</div><div class="rm-champline ${cd ? 'done' : cc ? 'cur' : 'todo'}">${cd ? '✅' : cc ? '🏆' : '🔒'} 챔피언전 — 처음 격파 시 🎖배지 +1 · 다음 지방</div></div>`;
   }
-  html += `</div><div class="rm-info">🔸 지방이 오를수록 적 체력 ×1.9·보상도 비례 증가 · 🔸 챔피언 격파 = 🎖배지(파티 공격·체력 +8%/개) · 🔸 ●=클리어 ◐=진행중 ○=대기</div>`;
+  html += `</div><div class="rm-info">🔸 <b>▶ 이동</b>: 정복·개방한 지방으로 돌아가 파밍/재정비(앞 지방 챔피언 재격파는 배지 없음) · 🔸 지방↑ 적 체력 ×1.9·보상↑ · 🔸 ●클리어 ◐진행 ○대기</div>`;
   $('panel-body').innerHTML = html;
+  $('panel-body').querySelectorAll('[data-travel]').forEach((b) => b.addEventListener('click', () => travelTo(+b.dataset.travel)));
 }
 
 // ---------- 가방 / 장비 ----------

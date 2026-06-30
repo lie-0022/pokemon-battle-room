@@ -1,5 +1,6 @@
 node_modules/
-dist/
+dist/*
+!dist/사용법.txt
 *.log
 electron-run.log
 .DS_Store

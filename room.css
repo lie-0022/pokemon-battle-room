@@ -437,6 +437,8 @@ html, body {
 .rm-region.todo { opacity: .72; }
 .rm-rhead { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 800; color: #fff; margin-bottom: 5px; }
 .rm-champ { font-size: 10px; color: #ffd479; font-weight: 700; }
+.rm-travel { background: #2e5a7d; color: #fff; border: none; border-radius: 6px; font-size: 9px; font-weight: 700; padding: 1px 7px; margin-left: 6px; cursor: pointer; }
+.rm-travel:hover { background: #3a6f97; }
 .rm-routes { display: flex; flex-direction: column; gap: 3px; }
 .rm-route { display: flex; align-items: center; gap: 6px; font-size: 10px; }
 .rm-route.todo { opacity: .55; }
