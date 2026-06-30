@@ -5,3 +5,5 @@ dist/*
 electron-run.log
 .DS_Store
 Thumbs.db
+
+ci-artifacts/
