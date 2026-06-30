@@ -7,3 +7,4 @@ electron-run.log
 Thumbs.db
 
 ci-artifacts/
+release/
