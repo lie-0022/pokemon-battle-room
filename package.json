@@ -30,7 +30,9 @@
       "!README.md",
       "!pokedex.json",
       "!gamedata.json",
-      "!dist/**"
+      "!dist/**",
+      "!ci-artifacts/**",
+      "!.github/**"
     ],
     "win": {
       "target": ["nsis"],
