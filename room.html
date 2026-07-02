@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; img-src 'self' https: data:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self';" />
+      content="default-src 'self'; img-src 'self' https: data:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://ssazim-default-rtdb.firebaseio.com;" />
 <link rel="stylesheet" href="room.css" />
 </head>
 <body>
@@ -21,6 +21,8 @@
       <button class="tabbtn" id="tab-shop" title="상점(구매·판매)">🛒</button>
       <button class="tabbtn" id="tab-dex" title="도감 수집">📖</button>
       <button class="tabbtn" id="tab-roadmap" title="로드맵 (지방·루트·진행)">🗺</button>
+      <button class="tabbtn" id="tab-raid" title="레이드 (10마리 보스전)">🐲</button>
+      <button class="tabbtn" id="tab-rank" title="온라인 랭킹 (레이드·스테이지)">🏆</button>
     </div>
 
     <!-- 상단바 아래 콘텐츠 영역 (패널은 이 영역만 덮어 상단바와 겹치지 않음) -->

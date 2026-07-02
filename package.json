@@ -1,6 +1,6 @@
 {
   "name": "pokemon-desktop-pet",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "바탕화면을 돌아다니는 도트 포켓몬 데스크톱 펫 + 배틀룸 (Electron)",
   "main": "main.js",
   "scripts": {
@@ -18,9 +18,11 @@
     "productName": "PokemonBattleRoom",
     "artifactName": "PokemonBattleRoom-${version}-${arch}.${ext}",
     "directories": { "output": "dist" },
+    "afterPack": "./mac-adhoc-sign.js",
     "files": [
       "**/*",
       "!docs/**",
+      "!mac-adhoc-sign.js",
       "!build-dex.js",
       "!build-learnsets.js",
       "!generate-icon.js",

@@ -30,7 +30,27 @@ jobs:
       - name: Build
         run: ${{ matrix.build }}
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: false   # 코드 서명 안 함(미서명 배포)
+          CSC_IDENTITY_AUTO_DISCOVERY: false   # 인증서 서명 안 함(ad-hoc은 afterPack 훅이 수행)
+      # macOS 산출물 자동 검증 — "손상된 파일" 사고를 빌드 단계에서 차단
+      - name: Verify mac build
+        if: runner.os == 'macOS'
+        run: |
+          set -e
+          APP=$(find dist/mac* -maxdepth 1 -name "*.app" | head -1)
+          echo "== app: $APP"
+          echo "== 아키텍처 =="; lipo -info "$APP/Contents/MacOS/"* || true
+          echo "== ad-hoc 서명 검증 (없으면 arm64에서 '손상됨' 발생) =="
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          echo "== Gatekeeper 평가(미서명 배포라 거부가 정상 — 참고용) =="
+          spctl --assess --type execute -vv "$APP" || true
+          echo "== dmg 마운트 검증 =="
+          DMG=$(ls dist/*.dmg | head -1)
+          hdiutil attach "$DMG" -nobrowse -readonly -mountpoint /tmp/pkmn-dmg
+          ls -la /tmp/pkmn-dmg
+          test -d /tmp/pkmn-dmg/*.app
+          codesign --verify --deep --strict /tmp/pkmn-dmg/*.app
+          hdiutil detach /tmp/pkmn-dmg
+          echo "✅ mac 산출물 검증 통과 (ad-hoc 서명 + dmg 정상)"
       # Actions 실행 페이지에서 내려받을 수 있는 산출물
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
