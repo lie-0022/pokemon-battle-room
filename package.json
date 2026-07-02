@@ -34,7 +34,9 @@
       "!gamedata.json",
       "!dist/**",
       "!ci-artifacts/**",
-      "!.github/**"
+      "!.github/**",
+      "!release/**",
+      "!.claude/**"
     ],
     "win": {
       "target": ["nsis"],
