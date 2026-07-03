@@ -208,12 +208,15 @@ const GEAR_KEYS = Object.keys(ITEM_DEFS);
 const defOf = (key) => ITEM_DEFS[key];
 // 확률·감쇠형 효과는 별에 선형이지만 상한을 둔다 — 데미지 배수(physAtk/offMult/typeBoost 등)는 성장이 의도된 파워라 무제한.
 // 풀죽음(적 행동봉쇄)·피해감소(무적화)·명중·치명은 상한 필수: 별 폭주해도 게임을 안 깨뜨림.
-const EFF_CAP = { flinch: 0.30, reduce: 0.70, acc: 1.0, crit: 1.0 };
-function effVal(it, eff) { const d = defOf(it.key); if (!d || !d.eff[eff]) return 0; const [b, s] = d.eff[eff]; const v = b + s * (it.star - 1); const cap = EFF_CAP[eff]; return cap != null ? Math.min(v, cap) : v; }
+// 상한 초과분은 보조 능력치로 환원(spill, 50%) — 상한 이후에도 별 업그레이드가 이점을 유지(공격형→공격, 방어형→HP).
+const EFF_CAP = { flinch: { cap: 0.30, spill: 'offMult', rate: 0.5 }, reduce: { cap: 0.70, spill: 'hp', rate: 0.5 }, acc: { cap: 1.0, spill: 'offMult', rate: 0.5 }, crit: { cap: 1.0, spill: 'offMult', rate: 0.5 } };
+function rawEffVal(it, eff) { const d = defOf(it.key); if (!d || !d.eff[eff]) return 0; const [b, s] = d.eff[eff]; return b + s * (it.star - 1); }
+function effVal(it, eff) { const v = rawEffVal(it, eff); const c = EFF_CAP[eff]; return c ? Math.min(v, c.cap) : v; }
+function effSpill(it, target) { const d = defOf(it.key); if (!d) return 0; let s = 0; for (const e in d.eff) { const c = EFF_CAP[e]; if (c && c.spill === target) s += Math.max(0, rawEffVal(it, e) - c.cap) * c.rate; } return s; }
 function equippedItems(m) { const e = m.equip || {}; const out = []; for (const s of ['main', 'boost', 'tech']) if (e[s]) out.push(e[s]); return out; }
 // 아직 더 진화할 수 있는가(레벨/돌/통신 어느 방법으로든) — 진화의 휘석(미진화 전용) 판정
 function canEvolveMore(en) { const sp = BY_EN[en]; return !!(sp && sp.evolveTo) || !!STONE_EVO[en] || !!NONLEVEL_EVO[en]; }
-function gearStat(m, eff) { let s = 0; for (const it of equippedItems(m)) { const d = defOf(it.key); if (!d) continue; if (d.unevolved && !canEvolveMore(m.en)) continue; if (d.eff[eff]) s += effVal(it, eff); } return s; }
+function gearStat(m, eff) { let s = 0; for (const it of equippedItems(m)) { const d = defOf(it.key); if (!d) continue; if (d.unevolved && !canEvolveMore(m.en)) continue; if (d.eff[eff]) s += effVal(it, eff); s += effSpill(it, eff); } return s; }   // 상한 초과분(spill)도 해당 능력치에 합산
 function gearMax(m, eff) { let v = 0; for (const it of equippedItems(m)) { const d = defOf(it.key); if (d && d.eff[eff]) v = Math.max(v, effVal(it, eff)); } return v; }
 function gearTypeBoost(m, t) { let s = 0; for (const it of equippedItems(m)) { const d = defOf(it.key); if (d && d.eff.typeBoost && d.ptype === t) s += effVal(it, 'typeBoost'); } return s; }
 function gearSuperEff(m) { let s = 0; for (const it of equippedItems(m)) { const d = defOf(it.key); if (d && d.eff.superEff) s += effVal(it, 'superEff'); } return s; }
@@ -238,12 +241,14 @@ function addGear(it, drop) {
   }
   state.inv.push(it); return true;
 }
+const SPILL_LABEL = { offMult: '공격', hp: 'HP' };
+function spillNote(it, eff) { const c = EFF_CAP[eff]; if (!c) return ''; const over = Math.max(0, rawEffVal(it, eff) - c.cap) * c.rate; return over > 0.004 ? `(상한·초과분→${SPILL_LABEL[c.spill]} +${Math.round(over * 100)}%)` : ''; }
 function gearLabel(it) {
   const d = defOf(it.key); const p = [];
   for (const eff in d.eff) {
     if (eff === 'sash') p.push('전투당 1회 버팀');
-    else if (eff === 'reduce') p.push(`받는 피해 -${Math.round(effVal(it, eff) * 100)}%${defOf(it.key).unevolved ? '(미진화)' : ''}`);
-    else if (eff === 'acc') p.push(`명중 +${Math.round(effVal(it, eff) * 100)}%`);
+    else if (eff === 'reduce') p.push(`받는 피해 -${Math.round(effVal(it, eff) * 100)}%${defOf(it.key).unevolved ? '(미진화)' : ''}${spillNote(it, eff)}`);
+    else if (eff === 'acc') p.push(`명중 +${Math.round(effVal(it, eff) * 100)}%${spillNote(it, eff)}`);
     else if (eff === 'physAtk') p.push(`물리공격 +${Math.round(effVal(it, eff) * 100)}%`);
     else if (eff === 'specAtk') p.push(`특수공격 +${Math.round(effVal(it, eff) * 100)}%`);
     else if (eff === 'offMult') p.push(`공격(물리+특수) +${Math.round(effVal(it, eff) * 100)}%`);
@@ -252,9 +257,9 @@ function gearLabel(it) {
     else if (eff === 'regen') p.push(`매턴회복 ${Math.round(effVal(it, eff) * 100)}%`);
     else if (eff === 'sludge') p.push(`독타입 매턴 +${Math.round(effVal(it, eff) * 100)}%·그외 피해`);
     else if (eff === 'lifesteal') p.push(`흡혈 ${Math.round(effVal(it, eff) * 100)}%`);
-    else if (eff === 'flinch') p.push(`풀죽음 ${Math.round(effVal(it, eff) * 100)}%`);
+    else if (eff === 'flinch') p.push(`풀죽음 ${Math.round(effVal(it, eff) * 100)}%${spillNote(it, eff)}`);
     else if (eff === 'thorns') p.push(`반사 ${Math.round(effVal(it, eff) * 100)}%`);
-    else p.push(`${STAT_LABEL[eff] || eff} +${Math.round(effVal(it, eff) * 100)}%`);
+    else p.push(`${STAT_LABEL[eff] || eff} +${Math.round(effVal(it, eff) * 100)}%${spillNote(it, eff)}`);
   }
   return p.join(' · ');
 }
@@ -1682,6 +1687,7 @@ function gearScore(it, member) {
     else if (e === 'regen') s += effVal(it, e) * 1.1;
     else s += effVal(it, e);
   }
+  s += effSpill(it, 'offMult') + effSpill(it, 'hp') * 0.8;   // 상한 초과 환원분도 가치에 포함(고별 상한 도구 저평가 방지)
   return s;
 }
 function autoEquip(member, fillOnly) {
