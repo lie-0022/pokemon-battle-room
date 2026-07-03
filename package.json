@@ -16,7 +16,7 @@
   "build": {
     "appId": "com.jayjun.pokemonroom",
     "productName": "PokemonBattleRoom",
-    "artifactName": "PokemonBattleRoom-${version}-${arch}.${ext}",
+    "artifactName": "PokemonRoom-${version}-${os}.${ext}",
     "directories": { "output": "dist" },
     "afterPack": "./mac-adhoc-sign.js",
     "files": [
