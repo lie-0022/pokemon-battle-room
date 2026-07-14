@@ -36,7 +36,9 @@
       "!ci-artifacts/**",
       "!.github/**",
       "!release/**",
-      "!.claude/**"
+      "!.claude/**",
+      "!capture-gif.js",
+      "!promo.gif"
     ],
     "win": {
       "target": ["nsis"],
@@ -58,6 +60,7 @@
   },
   "devDependencies": {
     "electron": "^33.2.0",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "gifenc": "^1.0.3"
   }
 }

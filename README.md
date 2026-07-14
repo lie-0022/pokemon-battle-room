@@ -3,6 +3,10 @@
 바탕화면에 작게 띄워놓고 자동으로 굴러가는 **방치형 포켓몬 오토배틀러** (Electron 데스크톱 앱).
 파티 3마리를 꾸려 관동부터 차례차례 지방을 정복하고, 레이드·온라인 랭킹·이로치·개체치까지 파고드는 아이들 RPG입니다. 1세대 151마리 전부 등장합니다.
 
+<p align="center"><img src="promo.gif" width="320" alt="포켓몬 배틀룸 플레이 화면"></p>
+
+<p align="center"><a href="https://github.com/lie-0022/pokemon-battle-room/releases/latest"><b>⬇️ 최신 버전 다운로드 (Windows / Mac)</b></a></p>
+
 > 모든 데이터는 공식 [PokéAPI](https://pokeapi.co)의 실제 포켓몬 데이터(종족값·타입·기술·진화·스프라이트)입니다.
 
 ---
