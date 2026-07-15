@@ -1897,9 +1897,23 @@ function showCharSelect() {
 }
 function chooseStarter(en) {
   state.party = [newMember(en, 5)]; state.started = true;
-  $('charselect').classList.add('hidden');
-  renderParty(); updateHud(); save(); spawnAt = performance.now() + 400 / SPD();
-  banner(`${BY_EN[en].name}와(과) 함께 출발!`);
+  renderParty(); updateHud(); save();
+  showFirstTips(en);   // 첫 실행 안내 → 닫으면 전투 시작
+}
+function showFirstTips(en) {
+  const el = $('charselect');
+  el.innerHTML = `<div class="cs-title">🎉 ${BY_EN[en].name}와(과) 출발!</div>
+    <div class="cs-tips">
+      <div>⚔️ 전투는 <b>자동</b> — 켜두면 알아서 지방을 정복해요</div>
+      <div>⏩ 상단 <b>배속</b> 버튼으로 ×1~×8 빠르게</div>
+      <div>🦸 파티·기술, 🎒 장비는 <b>✨ 자동 세팅</b>이 다 해줘요</div>
+      <div>💤 꺼두어도 <b>오프라인 골드</b>가 쌓여요</div>
+    </div><button class="cs-go">시작하기!</button>`;
+  el.querySelector('.cs-go').addEventListener('click', () => {
+    el.classList.add('hidden');
+    spawnAt = performance.now() + 400 / SPD();
+    banner(`${BY_EN[en].name}와(과) 함께 출발!`);
+  });
 }
 
 // ============================================================

@@ -306,6 +306,11 @@ html, body {
 .charselect.hidden { display: none; }
 .cs-title { font-size: 15px; font-weight: 800; color: var(--gold); }
 .cs-cards { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+/* 첫 실행 안내(온보딩) */
+.cs-tips { display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; line-height: 1.5; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 12px 16px; max-width: 320px; text-align: left; }
+.cs-tips b { color: var(--gold); }
+.cs-go { background: linear-gradient(180deg, #ffd54a, #f6b73c); color: #3a2c00; border: none; border-radius: 10px; padding: 9px 26px; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,.35); }
+.cs-go:hover { filter: brightness(1.08); }
 .cs-card {
   width: 120px; background: #1f2b3a; border: 2px solid rgba(255,255,255,.14); border-radius: 12px;
   padding: 8px; cursor: pointer; color: #fff; transition: transform .1s, border-color .12s, background .12s;
