@@ -321,6 +321,25 @@ const trAtk = () => 1, trHp = () => 1, trGold = () => 1, trXp = () => 1;   // �
 const maxParty = () => 3;
 const uniqueSpecies = () => Object.keys(state.dex.kills).length;
 const masteredCount = () => Object.values(state.dex.kills).filter((n) => n >= 100).length;
+// 도감 마일스톤 보상(1회성) — 수집 종수 기준. 달성 시 사탕 지급(수집 루프에 목표 부여)
+const DEX_MILESTONES = [
+  { n: 38, label: '25%', give: { 'iv-candy': 3 } },
+  { n: 76, label: '50%', give: { 'iv-candy': 5 } },
+  { n: 113, label: '75%', give: { 'iv-candy': 10 } },
+  { n: 151, label: '100% 완성', give: { 'shiny-candy': 1, 'iv-candy': 10 } },
+];
+function checkDexMilestones() {
+  state.dex.ms = state.dex.ms || [];
+  const n = uniqueSpecies();
+  for (const m of DEX_MILESTONES) {
+    if (n >= m.n && !state.dex.ms.includes(m.n)) {
+      state.dex.ms.push(m.n);
+      const parts = Object.entries(m.give).map(([k, c]) => { for (let i = 0; i < c; i++) addConsum(k); return `${CONSUM[k].emoji || ''}${CONSUM[k].name} ×${c}`; });
+      banner(`📖 도감 ${m.n}종(${m.label}) 달성! ${parts.join(' · ')}`);
+      logEvent(`📖 도감 ${m.n}종(${m.label}) 달성 — 보상: ${parts.join(' · ')}`);
+    }
+  }
+}
 const collectionGold = () => uniqueSpecies() * 0.003;
 const masteryAtk = () => 1 + masteredCount() * 0.01;
 const goldMult = () => trGold() + collectionGold();
@@ -878,6 +897,7 @@ function enemyDefeated() {
 
   state.dex.kills[een] = (state.dex.kills[een] || 0) + 1;
   if (state.dex.kills[een] === 100) banner(`🌟 ${BY_EN[een].name} 마스터! (처치 100)`);
+  checkDexMilestones();
 
   // 포획: 야생 5% / 보스·챔피언(강한·전설급) 1% + 방생 누적 보너스
   if (Math.random() < (kind === 'wave' ? 0.05 : 0.01 + releaseBonus())) catchSpecies(een, elv);
@@ -1221,7 +1241,9 @@ function renderDex() {
   const kills = state.dex.kills, ens = Object.keys(kills).sort((a, b) => BY_EN[a].id - BY_EN[b].id);
   $('panel-title').textContent = `📖 도감 수집`;
   const dexTotal = Object.keys(BY_EN).length, dexPct = Math.round(uniqueSpecies() / dexTotal * 100);
-  const sum = `<div class="dex-sum">수집 <b>${uniqueSpecies()}/${dexTotal}</b>종 (<b style="color:var(--gold)">${dexPct}%</b>) · 마스터(100킬) <b>${masteredCount()}</b>종<br>골드 <b>+${(collectionGold() * 100).toFixed(1)}%</b> · 마스터 공격 <b>+${((masteryAtk() - 1) * 100).toFixed(0)}%</b></div>`;
+  const nextMs = DEX_MILESTONES.find((m) => !(state.dex.ms || []).includes(m.n));
+  const msLine = nextMs ? `<br>🎁 다음 보상: <b>${nextMs.n}종</b> 달성 시 ${Object.entries(nextMs.give).map(([k, c]) => `${CONSUM[k].emoji || ''}${CONSUM[k].name} ×${c}`).join(' · ')}` : '<br>🎁 도감 보상 모두 획득!';
+  const sum = `<div class="dex-sum">수집 <b>${uniqueSpecies()}/${dexTotal}</b>종 (<b style="color:var(--gold)">${dexPct}%</b>) · 마스터(100킬) <b>${masteredCount()}</b>종<br>골드 <b>+${(collectionGold() * 100).toFixed(1)}%</b> · 마스터 공격 <b>+${((masteryAtk() - 1) * 100).toFixed(0)}%</b>${msLine}</div>`;
   const showEns = dexShowAll ? Object.keys(BY_EN).sort((a, b) => BY_EN[a].id - BY_EN[b].id) : ens;
   const cell = (en) => {
     const sp = BY_EN[en], k = kills[en] || 0;
@@ -2003,6 +2025,7 @@ function init() {
   document.addEventListener('pointercancel', stopGachaHold);
   window.addEventListener('blur', stopGachaHold);
   if (!state.started) showCharSelect();
+  checkDexMilestones();   // 이미 임계를 넘긴 기존 세이브에 소급 지급
   requestAnimationFrame(tick);
   setInterval(save, 5000);
   window.addEventListener('beforeunload', save);
