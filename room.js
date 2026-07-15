@@ -1277,8 +1277,47 @@ function renderRoadmap() {
     html += `</div><div class="rm-champline ${cd ? 'done' : cc ? 'cur' : 'todo'}">${cd ? '✅' : cc ? '🏆' : '🔒'} 챔피언전 — 처음 격파 시 🎖배지 +1 · 다음 지방</div></div>`;
   }
   html += `</div><div class="rm-info">🔸 <b>▶ 이동</b>: 정복·개방한 지방으로 돌아가 파밍/재정비(앞 지방 챔피언 재격파는 배지 없음) · 🔸 지방↑ 적 체력 ×1.9·보상↑ · 🔸 ●클리어 ◐진행 ○대기</div>`;
+  html += `<div class="rm-data"><b>💾 데이터</b> <small>v${GAME_VERSION}</small><div class="rm-data-btns">
+    <button id="save-export">📤 세이브 내보내기</button>
+    <button id="save-import">📥 세이브 가져오기</button>
+  </div><small>PC 교체·재설치 대비 백업. 가져오면 현재 진행을 덮어씁니다.</small></div>`;
   $('panel-body').innerHTML = html;
   $('panel-body').querySelectorAll('[data-travel]').forEach((b) => b.addEventListener('click', () => travelTo(+b.dataset.travel)));
+  $('save-export').addEventListener('click', exportSave);
+  $('save-import').addEventListener('click', importSave);
+}
+// ---------- 세이브 백업/복구 ----------
+function exportSave() {
+  save();   // 최신 상태 반영 후 내보내기
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (!raw) { banner('내보낼 세이브가 없어요'); return; }
+  const d = new Date(), pad = (n) => String(n).padStart(2, '0');
+  const name = `포켓몬룸-세이브-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([raw], { type: 'application/json' }));
+  a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  banner('📤 세이브 파일 저장! 안전한 곳에 보관하세요');
+}
+function importSave() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json,application/json';
+  inp.addEventListener('change', () => {
+    const f = inp.files && inp.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try {
+        const j = JSON.parse(rd.result);
+        if (!j || typeof j !== 'object' || !j.prog || !Array.isArray(j.party)) { banner('❌ 포켓몬룸 세이브 파일이 아니에요'); return; }
+        const inR = (j.prog.maxRegion ?? j.prog.region) || 0;
+        if (!confirm(`가져온 세이브(${regionName(Math.min(inR, REGIONS.length - 1))} 진행, 파티 ${j.party.length}마리)로 현재 진행(${locLabel()})을 덮어쓸까요?\n이 작업은 되돌릴 수 없어요.`)) return;
+        localStorage.setItem(SAVE_KEY, JSON.stringify(j));
+        location.reload();   // loadState가 버전 마이그레이션까지 수행
+      } catch (e) { banner('❌ 파일을 읽을 수 없어요 (손상되었거나 형식이 다름)'); }
+    };
+    rd.readAsText(f);
+  });
+  inp.click();
 }
 
 // ---------- 🐲 레이드 (팀 편성) ----------
@@ -1953,5 +1992,28 @@ function init() {
   window.addEventListener('beforeunload', save);
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
   if (window.petAPI) window.petAPI.onCommand((cmd) => { if (cmd && cmd.type === 'roomReset') { localStorage.removeItem(SAVE_KEY); localStorage.removeItem('pkmnRoom_v2'); location.reload(); } });
+  setTimeout(checkUpdate, 8000); setInterval(checkUpdate, 6 * 3600 * 1000);   // 새 버전 알림 (기동 8초 후 + 6시간마다)
 }
 init();
+
+// ---------- 버전/업데이트 알림 ----------
+// GAME_VERSION은 릴리스마다 package.json version과 함께 올린다(배포 프로토콜).
+const GAME_VERSION = '1.2.1';
+const RELEASES_URL = 'https://github.com/lie-0022/pokemon-battle-room/releases/latest';
+function verNum(s) { const p = String(s || '').replace(/^v/, '').split('.'); return (+p[0] || 0) * 1e6 + (+p[1] || 0) * 1e3 + (+p[2] || 0); }
+async function checkUpdate() {
+  try {
+    const r = await fetch('https://api.github.com/repos/lie-0022/pokemon-battle-room/releases/latest', { cache: 'no-store' });
+    if (!r.ok) return;
+    const j = await r.json();
+    if (verNum(j.tag_name) > verNum(GAME_VERSION) && !$('update-badge')) {
+      const b = document.createElement('button');
+      b.id = 'update-badge'; b.className = 'tabbtn update';
+      b.title = `새 버전 ${j.tag_name} 다운로드 (진행 데이터는 유지됩니다)`;
+      b.textContent = `🔄 ${j.tag_name}`;
+      b.addEventListener('click', () => window.open(RELEASES_URL, '_blank'));
+      const sb = $('speed-btn'); if (sb) sb.parentNode.insertBefore(b, sb);
+      logEvent(`🔄 새 버전 ${j.tag_name}이 나왔어요! 상단 버튼으로 다운로드 (세이브 유지)`);
+    }
+  } catch (e) { /* 오프라인 등 — 조용히 무시 */ }
+}

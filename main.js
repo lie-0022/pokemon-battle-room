@@ -4,7 +4,7 @@
 //  2) 배틀룸: 화면 하단 도킹 작은 창, 자동전투 아이들 RPG (Task Bar Hero 스타일)
 //  시스템 트레이로 둘 다 제어.
 // ============================================================
-const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage, shell } = require('electron');
 const path = require('path');
 
 let petWin = null;
@@ -83,6 +83,8 @@ function createRoomWindow() {
   });
   roomWin.setAlwaysOnTop(true, 'screen-saver');
   roomWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  // 게임 내 링크(업데이트 알림 등)는 새 Electron 창 대신 기본 브라우저로
+  roomWin.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/i.test(url)) shell.openExternal(url); return { action: 'deny' }; });
   roomWin.loadFile('room.html');
   roomWin.on('closed', () => { roomWin = null; });
   roomWin.on('move', broadcastRoomRect);
