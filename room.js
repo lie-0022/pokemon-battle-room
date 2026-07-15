@@ -336,7 +336,7 @@ function checkDexMilestones() {
     if (n >= m.n && !state.dex.ms.includes(m.n)) {
       state.dex.ms.push(m.n);
       const parts = Object.entries(m.give).map(([k, c]) => { for (let i = 0; i < c; i++) addConsum(k); return `${CONSUM[k].emoji || ''}${CONSUM[k].name} ×${c}`; });
-      banner(`📖 도감 ${m.n}종(${m.label}) 달성! ${parts.join(' · ')}`);
+      sfx("big"); banner(`📖 도감 ${m.n}종(${m.label}) 달성! ${parts.join(' · ')}`);
       logEvent(`📖 도감 ${m.n}종(${m.label}) 달성 — 보상: ${parts.join(' · ')}`);
     }
   }
@@ -394,7 +394,7 @@ function defaultState() {
     version: 10, gold: 0, candy: 0, started: false, itemSeq: 0, inv: [], tms: {}, items: {},
     released: 0,   // 누적 방생 수 → 보스·챔피언 포획 확률 영구 보너스
     raid: { team: [], maxTier: 0, best: {}, bestSetup: {}, cleared: {}, token: 0, presets: [null, null, null], autoRetry: false },   // 레이드: 팀·최고등급·베스트타임·베스트세팅(닉변경 재등록용)·🏅메달·팀 프리셋(3)·자동 재도전
-    settings: { speed: 1, autosell: false, nick: '' },   // nick: 온라인 랭킹 닉네임
+    settings: { speed: 1, autosell: false, nick: '', sfx: false },   // nick: 온라인 랭킹 닉네임 · sfx: 효과음(기본 꺼짐)
     rankUid: '',   // 온라인 랭킹 식별자(설치당 고정, RTDB 인증 없음)
     party: [newMember('pikachu', 5)], bench: [],
     up: { atk: 0, hp: 0, spd: 0 },
@@ -422,7 +422,7 @@ function loadState() {
         s.released = s.released || 0;
         s.tms = s.tms || {};
         s.items = s.items || {};
-        s.settings = s.settings || { speed: 1 }; if (!s.settings.speed) s.settings.speed = 1; if (s.settings.autosell === undefined) s.settings.autosell = false; if (typeof s.settings.nick !== 'string') s.settings.nick = '';
+        s.settings = s.settings || { speed: 1 }; if (!s.settings.speed) s.settings.speed = 1; if (s.settings.autosell === undefined) s.settings.autosell = false; if (typeof s.settings.nick !== 'string') s.settings.nick = ''; if (s.settings.sfx === undefined) s.settings.sfx = false;
         s.rankUid = s.rankUid || '';
         s.bench = Array.isArray(s.bench) ? s.bench : [];
         if (s.started === undefined) s.started = true;
@@ -916,11 +916,11 @@ function enemyDefeated() {
   if (kind === 'champion') {
     const frontier = p.region >= (p.maxRegion || 0);   // 최전선 챔피언일 때만 배지·해금
     p.region++; p.route = 1; p.wave = 1; heroes.forEach(healHero);
-    if (frontier) { p.maxRegion = p.region; p.maxRoute = 1; p.badges++; banner(`🎉 챔피언 격파! ${regionName(p.region)} 입성 · 🎖${p.badges}!`); if (rankOn()) submitStageScore(); }
+    if (frontier) { p.maxRegion = p.region; p.maxRoute = 1; p.badges++; sfx("big"); banner(`🎉 챔피언 격파! ${regionName(p.region)} 입성 · 🎖${p.badges}!`); if (rankOn()) submitStageScore(); }
     else banner(`✅ ${regionName(p.region)}(으)로 진행 (이미 정복한 지방 — 배지 없음)`);
   }
   else if (kind === 'boss') {
-    p.route++; p.wave = 1; banner(`✅ 루트 클리어! ${regionName(p.region)} R${p.route}`);
+    p.route++; p.wave = 1; sfx("clear"); banner(`✅ 루트 클리어! ${regionName(p.region)} R${p.route}`);
     if (p.region >= (p.maxRegion || 0) && p.route > (p.maxRoute || 1)) { p.maxRoute = p.route; if (rankOn()) submitStageScore(); }   // 최전선 루트 진행 시 스테이지 랭킹 갱신(세팅도 최신 반영)
   }
   else p.wave++;
@@ -1303,14 +1303,16 @@ function renderRoadmap() {
     html += `</div><div class="rm-champline ${cd ? 'done' : cc ? 'cur' : 'todo'}">${cd ? '✅' : cc ? '🏆' : '🔒'} 챔피언전 — 처음 격파 시 🎖배지 +1 · 다음 지방</div></div>`;
   }
   html += `</div><div class="rm-info">🔸 <b>▶ 이동</b>: 정복·개방한 지방으로 돌아가 파밍/재정비(앞 지방 챔피언 재격파는 배지 없음) · 🔸 지방↑ 적 체력 ×1.9·보상↑ · 🔸 ●클리어 ◐진행 ○대기</div>`;
-  html += `<div class="rm-data"><b>💾 데이터</b> <small>v${GAME_VERSION}</small><div class="rm-data-btns">
+  html += `<div class="rm-data"><b>💾 데이터 · 설정</b> <small>v${GAME_VERSION}</small><div class="rm-data-btns">
     <button id="save-export">📤 세이브 내보내기</button>
     <button id="save-import">📥 세이브 가져오기</button>
-  </div><small>PC 교체·재설치 대비 백업. 가져오면 현재 진행을 덮어씁니다.</small></div>`;
+    <button id="sfx-toggle">${state.settings.sfx ? '🔊 효과음 켬' : '🔇 효과음 꺼짐'}</button>
+  </div><small>PC 교체·재설치 대비 백업. 가져오면 현재 진행을 덮어씁니다. 효과음은 보스·강화 등 이벤트만 울려요.</small></div>`;
   $('panel-body').innerHTML = html;
   $('panel-body').querySelectorAll('[data-travel]').forEach((b) => b.addEventListener('click', () => travelTo(+b.dataset.travel)));
   $('save-export').addEventListener('click', exportSave);
   $('save-import').addEventListener('click', importSave);
+  $('sfx-toggle').addEventListener('click', () => { state.settings.sfx = !state.settings.sfx; save(); if (state.settings.sfx) sfx('good'); renderRoadmap(); });
 }
 // ---------- 세이브 백업/복구 ----------
 function exportSave() {
@@ -1543,7 +1545,7 @@ function raidWin() {   // enemyDefeated에서 보스 격파 시 호출
   state.raid.maxTier = Math.max(state.raid.maxTier || 0, tier);
   const secs = fmtRT(clearMs);
   logEvent(`🏆 레이드 등급 ${tier} 클리어 ⏱${secs} · +${fmt(gold)}💰 · +${tokens}🏅` + (drops.length ? ' · 🎁' + drops.map((it) => defOf(it.key).name + starStr(it.star)).join(', ') : ''));
-  banner(`🏆 등급 ${tier} 클리어! ⏱${secs} · +${fmt(gold)}💰 · +${tokens}🏅 · 🎁${drops.length}` + (firstClear ? ' (첫 클리어 3배!)' : ''));
+  sfx("big"); banner(`🏆 등급 ${tier} 클리어! ⏱${secs} · +${fmt(gold)}💰 · +${tokens}🏅 · 🎁${drops.length}` + (firstClear ? ' (첫 클리어 3배!)' : ''));
   if (state.raid.autoRetry) _raidRetryTier = tier;   // ♻ 자동 재도전: 승리 시 같은 등급 반복
   setTimeout(() => endRaidCleanup(), 1400);
   updateHud(); save();
@@ -1813,11 +1815,11 @@ function fuseGear(tag) {
   const rate = fuseRate(st);
   if (Math.random() < rate) {
     addGear({ uid: 'g' + (++state.itemSeq), key, star: st + 1 });
-    banner(`🔧 강화 성공! ${defOf(key).name} ${starStr(st + 1)} (${Math.round(rate * 100)}%)`);
+    sfx("good"); banner(`🔧 강화 성공! ${defOf(key).name} ${starStr(st + 1)} (${Math.round(rate * 100)}%)`);
   } else {
     addGear({ uid: 'g' + (++state.itemSeq), key, star: st });   // 실패: 1개 소실(2개→1개)
     addGear({ uid: 'g' + (++state.itemSeq), key, star: st });
-    banner(`💥 강화 실패… ${defOf(key).name} ${starStr(st)} (1개 소실, 성공률 ${Math.round(rate * 100)}%)`);
+    sfx("bad"); banner(`💥 강화 실패… ${defOf(key).name} ${starStr(st)} (1개 소실, 성공률 ${Math.round(rate * 100)}%)`);
   }
   renderBag(); updateHud(); save();
 }
@@ -2038,6 +2040,28 @@ function init() {
   if (window.petAPI) { setTimeout(checkUpdate, 8000); setInterval(checkUpdate, 6 * 3600 * 1000); }   // 새 버전 알림 (데스크톱 전용 — 웹은 항상 최신)
 }
 init();
+
+// ---------- 효과음 (WebAudio 신스 — 파일 없음, 기본 꺼짐) ----------
+// 이벤트만 울림(보스·챔피언·레이드·강화·도감) — 타격음은 방치 앱 특성상 소음이라 제외
+let audioCtx = null;
+function sfx(kind) {
+  if (!state.settings || !state.settings.sfx) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const t0 = audioCtx.currentTime;
+    const notes = { clear: [523, 659, 784], big: [523, 659, 784, 1047], good: [660, 880], bad: [294, 220] }[kind] || [660];
+    notes.forEach((f, i) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'triangle'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t0 + i * 0.09);
+      g.gain.exponentialRampToValueAtTime(0.05, t0 + i * 0.09 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.09 + 0.25);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t0 + i * 0.09); o.stop(t0 + i * 0.09 + 0.3);
+    });
+  } catch (e) { /* 오디오 미지원 환경 무시 */ }
+}
 
 // ---------- 버전/업데이트 알림 ----------
 // GAME_VERSION은 릴리스마다 package.json version과 함께 올린다(배포 프로토콜).
