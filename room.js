@@ -2041,7 +2041,24 @@ function applyOffline() {
   const perKill = (5 + p.region * 8 + p.route * 2) * regionMult(p.region) * goldMult();
   const rate = perKill / 3 * 0.3;
   const earned = Math.floor(rate * elapsed);
-  if (earned > 0) { state.gold += earned; const mins = Math.floor(elapsed / 60); setTimeout(() => banner(`💤 자리비운 ${mins}분 +${fmt(earned)}골드! (오프라인은 30% 효율)`), 600); }
+  if (earned > 0) {
+    state.gold += earned; const mins = Math.floor(elapsed / 60);
+    if (mins >= 30 && state.started) setTimeout(() => showWelcomeBack(mins, earned), 600);   // 긴 부재 = 웰컴백 요약 팝업
+    else setTimeout(() => banner(`💤 자리비운 ${mins}분 +${fmt(earned)}골드! (오프라인은 30% 효율)`), 600);
+  }
+}
+function showWelcomeBack(mins, earned) {
+  const el = $('charselect'); if (!el) return;
+  ensureDaily();
+  const done = state.daily.ms.filter((m) => m.claimed || m.cur >= DAILY_DEFS[m.k].goal).length;
+  const h = Math.floor(mins / 60), mm = mins % 60;
+  el.innerHTML = `<div class="cs-title">💤 다녀오셨네요!</div><div class="cs-tips">
+    <div>⏱ 자리 비운 <b>${h ? h + '시간 ' : ''}${mm}분</b></div>
+    <div>💰 오프라인 골드 <b>+${fmt(earned)}</b> <small>(30% 효율 — 켜두면 100%)</small></div>
+    <div>📅 오늘의 미션 <b>${done}/3</b>${done >= 3 ? ' — 완료! 🗺에서 보상 확인' : ' — 🗺 로드맵에서 확인'}</div>
+  </div><button class="cs-go">게임으로!</button>`;
+  el.classList.remove('hidden');
+  el.querySelector('.cs-go').addEventListener('click', () => el.classList.add('hidden'));
 }
 function setupGrip() {
   const grip = $('grip'); if (!grip) return;
