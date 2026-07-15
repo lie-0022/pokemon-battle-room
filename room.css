@@ -557,6 +557,8 @@ html, body {
 /* ---------- ✨ 이로치(색違) ---------- */
 .rcard, .eqcard, .svcard { position: relative; }
 .shiny-badge { position: absolute; top: 1px; right: 2px; font-size: 11px; z-index: 3; filter: drop-shadow(0 0 2px #ffd700); pointer-events: none; }
+.iv-badge { position: absolute; top: 1px; left: 2px; font-size: 10px; z-index: 3; filter: drop-shadow(0 0 2px #ffb700); pointer-events: none; }   /* 개체치 31 왕관 — 좌상단(이로치 ✨는 우상단) */
+.dcell .dshiny { position: absolute; top: 0; left: 2px; font-size: 10px; z-index: 2; filter: drop-shadow(0 0 2px #ffd700); }
 /* 이로치 표시는 우상단 ✨배지만 — 테두리를 주면 '선택됨'과 헷갈림 */
 .rmove.shinybtn { background: linear-gradient(180deg,#ffe08a,#e0a92e); color: #4a3600; }
 .rmove.shinybtn:hover { filter: brightness(1.08); }

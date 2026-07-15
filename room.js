@@ -42,6 +42,7 @@ const memThumb = (m) => m.shiny ? staticUrlS(spOf(m)) : spOf(m).sprites.front;  
 const memThumbFb = (m) => spOf(m).sprites.front || staticUrl(spOf(m));                     // 카드 폴백(일반)
 const memHead = (m) => m.shiny ? staticUrlS(spOf(m)) : (spOf(m).sprites.art || spOf(m).sprites.front);  // 상세 헤드 src(이로치=정적 도트 — 아트워크보다 로드 안정)
 const shinyMark = (m) => m && m.shiny ? '<span class="shiny-badge">✨</span>' : '';
+const ivMark = (m) => m && (m.iv || 0) >= 31 ? '<span class="iv-badge" title="개체치 31 (최대)">👑</span>' : '';   // 개체치 만렙 왕관(좌상단 — 이로치 ✨는 우상단)
 const IMG_PLACEHOLDER = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><circle cx="24" cy="24" r="16" fill="%23394b5e"/><circle cx="24" cy="24" r="6" fill="%23556a80"/></svg>';
 const ITEM_ICON = (key) => `assets/items/${key}.png`;   // 앱 내장(레이트리밋·오프라인에도 항상 표시)
 // 이미지 로드 실패 전역 처리(캡처 단계): data-fb → 같은 id 정적 png → 플레이스홀더
@@ -1076,7 +1077,7 @@ function renderRoster() {
   let partyHtml = '<div class="rsec">파티 (' + state.party.length + '/' + slotsN + ') · ⚔ 총 <b style="color:var(--gold)">' + fmt(partyPower) + '</b></div><div class="rrow">';
   for (let i = 0; i < slotsN; i++) {
     const m = state.party[i];
-    if (m) { const sp = spOf(m); partyHtml += `<button class="rcard ${rosterSel === m ? 'sel' : ''}${m.shiny ? ' shiny' : ''}" data-party="${i}">${shinyMark(m)}<img src="${memThumb(m)}" data-fb="${memThumbFb(m)}" alt=""><span>${sp.name}</span><small>Lv.${m.lv}</small></button>`; }
+    if (m) { const sp = spOf(m); partyHtml += `<button class="rcard ${rosterSel === m ? 'sel' : ''}${m.shiny ? ' shiny' : ''}" data-party="${i}">${shinyMark(m)}${ivMark(m)}<img src="${memThumb(m)}" data-fb="${memThumbFb(m)}" alt=""><span>${sp.name}</span><small>Lv.${m.lv}</small></button>`; }
     else partyHtml += `<div class="rcard empty">＋<small>빈 슬롯</small></div>`;
   }
   partyHtml += '</div>';
@@ -1089,7 +1090,7 @@ function renderRoster() {
   let benchHtml = '<div class="rsec">보유 포켓몬 (벤치 ' + state.bench.length + '/' + BENCH_MAX + ')' + benchTools + '</div>';
   benchHtml += `<div class="bench-bonus">🎈 방생 누적 <b>${state.released || 0}</b>마리 → 보스·챔피언 포획 확률 <b>+${(releaseBonus() * 100).toFixed(1)}%</b> (영구 · 최대 +6%)</div>`;
   if (releaseMode) benchHtml += `<div class="rctrl"><button class="rmove rel ${releaseSel.size ? '' : 'off'}" id="bench-relgo">👋 선택한 ${releaseSel.size}마리 놓아주기</button></div>`;
-  benchHtml += state.bench.length ? '<div class="rrow wrap">' + benchSorted.map((m, i) => { const sp = spOf(m); const picked = releaseMode && releaseSel.has(m); return `<button class="rcard sm ${picked ? 'relpick' : (rosterSel === m ? 'sel' : '')}${m.shiny ? ' shiny' : ''}" data-bench="${i}">${picked ? '<span class="pickmark">✓</span>' : ''}${shinyMark(m)}<img src="${memThumb(m)}" data-fb="${memThumbFb(m)}" alt=""><span>${sp.name}</span><small>Lv.${m.lv}</small></button>`; }).join('') + '</div>'
+  benchHtml += state.bench.length ? '<div class="rrow wrap">' + benchSorted.map((m, i) => { const sp = spOf(m); const picked = releaseMode && releaseSel.has(m); return `<button class="rcard sm ${picked ? 'relpick' : (rosterSel === m ? 'sel' : '')}${m.shiny ? ' shiny' : ''}" data-bench="${i}">${picked ? '<span class="pickmark">✓</span>' : ''}${shinyMark(m)}${ivMark(m)}<img src="${memThumb(m)}" data-fb="${memThumbFb(m)}" alt=""><span>${sp.name}</span><small>Lv.${m.lv}</small></button>`; }).join('') + '</div>'
     : '<div class="dex-sum">야생 포켓몬을 처치하면 일정 확률로 잡혀서 여기 모입니다.</div>';
   const controls = '<div class="rctrl"><button class="rmove" id="auto-all">✨ 파티 전체 자동 (장비 + 기술)</button></div>';
   // 선택 정보(roster-detail)를 벤치 위에 배치 — 파티 누르면 바로 위에서 보임
@@ -1243,13 +1244,16 @@ function renderDex() {
   const dexTotal = Object.keys(BY_EN).length, dexPct = Math.round(uniqueSpecies() / dexTotal * 100);
   const nextMs = DEX_MILESTONES.find((m) => !(state.dex.ms || []).includes(m.n));
   const msLine = nextMs ? `<br>🎁 다음 보상: <b>${nextMs.n}종</b> 달성 시 ${Object.entries(nextMs.give).map(([k, c]) => `${CONSUM[k].emoji || ''}${CONSUM[k].name} ×${c}`).join(' · ')}` : '<br>🎁 도감 보상 모두 획득!';
-  const sum = `<div class="dex-sum">수집 <b>${uniqueSpecies()}/${dexTotal}</b>종 (<b style="color:var(--gold)">${dexPct}%</b>) · 마스터(100킬) <b>${masteredCount()}</b>종<br>골드 <b>+${(collectionGold() * 100).toFixed(1)}%</b> · 마스터 공격 <b>+${((masteryAtk() - 1) * 100).toFixed(0)}%</b>${msLine}</div>`;
+  const shinyEns = new Set(ownedMembers().filter((m) => m.shiny).map((m) => m.en));
+  const iv31 = ownedMembers().filter((m) => (m.iv || 0) >= 31).length;
+  const sum = `<div class="dex-sum">수집 <b>${uniqueSpecies()}/${dexTotal}</b>종 (<b style="color:var(--gold)">${dexPct}%</b>) · 마스터(100킬) <b>${masteredCount()}</b>종 · ✨이로치 <b>${shinyEns.size}</b>종 · 👑개체치31 <b>${iv31}</b>마리<br>골드 <b>+${(collectionGold() * 100).toFixed(1)}%</b> · 마스터 공격 <b>+${((masteryAtk() - 1) * 100).toFixed(0)}%</b>${msLine}</div>`;
   const showEns = dexShowAll ? Object.keys(BY_EN).sort((a, b) => BY_EN[a].id - BY_EN[b].id) : ens;
   const cell = (en) => {
     const sp = BY_EN[en], k = kills[en] || 0;
     if (!k) return `<div class="dcell locked" title="미수집 No.${sp.id}"><span class="dq">❓</span><div class="dn">No.${sp.id}</div></div>`;
     const master = k >= 100;
-    return `<div class="dcell ${master ? 'master' : ''}">${master ? '<span class="dstar">🌟</span>' : ''}<img src="${sp.sprites.front}" data-fb="${sp.sprites.art || staticUrl(sp)}" alt="" loading="lazy"><div class="dn">${sp.name}</div><div class="dk">${k >= 100 ? 'MAX' : k}</div></div>`;
+    const shiny = shinyEns.has(en) ? '<span class="dshiny" title="이로치 보유">✨</span>' : '';
+    return `<div class="dcell ${master ? 'master' : ''}">${master ? '<span class="dstar">🌟</span>' : ''}${shiny}<img src="${sp.sprites.front}" data-fb="${sp.sprites.art || staticUrl(sp)}" alt="" loading="lazy"><div class="dn">${sp.name}</div><div class="dk">${k >= 100 ? 'MAX' : k}</div></div>`;
   };
   const grid = showEns.length ? `<div class="dexgrid">${showEns.map(cell).join('')}</div>` : '<div class="dex-sum">아직 처치한 포켓몬이 없어요.</div>';
   const toggle = `<div class="rctrl"><button class="rmove ${dexShowAll ? 'on' : ''}" id="dex-showall">${dexShowAll ? '✓ 미수집 포함 (전체)' : '미수집 포함 보기'}</button></div>`;
@@ -1607,7 +1611,7 @@ function renderRaid() {
   const maxT = (state.raid.maxTier || 0) + 1;
   raidPickTier = clamp(raidPickTier, 1, maxT);
   const selM = raidSel ? memberById(raidSel) : null;
-  const card = (m, picked) => { const sp = spOf(m); return `<button class="rcard sm ${picked && m.mid === raidSel ? 'sel' : ''}${m.shiny ? ' shiny' : ''}" data-rid="${m.mid}" data-rpick="${picked ? 1 : 0}">${shinyMark(m)}<img src="${memThumb(m)}" data-fb="${memThumbFb(m)}" alt=""><span>${sp.name}</span><small>Lv.${m.lv} · ⚔${fmt(memberDPS(m))}</small></button>`; };
+  const card = (m, picked) => { const sp = spOf(m); return `<button class="rcard sm ${picked && m.mid === raidSel ? 'sel' : ''}${m.shiny ? ' shiny' : ''}" data-rid="${m.mid}" data-rpick="${picked ? 1 : 0}">${shinyMark(m)}${ivMark(m)}<img src="${memThumb(m)}" data-fb="${memThumbFb(m)}" alt=""><span>${sp.name}</span><small>Lv.${m.lv} · ⚔${fmt(memberDPS(m))}</small></button>`; };
   const pool = ownedMembers().filter((m) => !inRaid(m));
   const teamPower = team.reduce((s, m) => s + memberDPS(m), 0);
   const teamHtml = '<div class="rsec">레이드 팀 (' + team.length + '/10) · ⚔ 총 <b style="color:var(--gold)">' + fmt(teamPower) + '</b> — 탭=선택(세팅)</div><div class="rrow wrap">' +
