@@ -341,6 +341,45 @@ function checkDexMilestones() {
     }
   }
 }
+
+// ---------- 📅 일일 미션 (리텐션 루프 — 매일 3개, 자정 리셋) ----------
+const DAILY_DEFS = {
+  kill: { icon: '⚔️', label: (g) => `몬스터 ${g}마리 처치`, goal: 150 },
+  boss: { icon: '👑', label: (g) => `보스·챔피언 ${g}회 격파`, goal: 5 },
+  catch: { icon: '🎾', label: (g) => `포켓몬 ${g}마리 포획`, goal: 3 },
+  fuse: { icon: '🔧', label: (g) => `장비 강화 ${g}회 시도`, goal: 5 },
+  gacha: { icon: '🎁', label: (g) => `뽑기 ${g}회`, goal: 10 },
+  raid: { icon: '🐲', label: (g) => `레이드 ${g}회 클리어`, goal: 1 },
+};
+const dailyKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+function ensureDaily() {
+  if (!state.daily || state.daily.date !== dailyKey()) {
+    const pool = ['boss', 'catch', 'fuse', 'gacha', 'raid'].sort(() => Math.random() - 0.5);
+    state.daily = { date: dailyKey(), ms: ['kill', pool[0], pool[1]].map((k) => ({ k, cur: 0, claimed: false })) };
+  }
+}
+function dailyProg(k, n) {
+  ensureDaily();
+  const m = state.daily.ms.find((x) => x.k === k && !x.claimed);
+  if (!m) return;
+  const goal = DAILY_DEFS[k].goal;
+  if (m.cur >= goal) return;
+  m.cur = Math.min(goal, m.cur + (n || 1));
+  if (m.cur >= goal) { sfx('good'); banner(`📅 미션 달성! ${DAILY_DEFS[k].label(goal)} — 🗺 로드맵에서 보상 수령`); }
+  if (panelOpen === 'map') renderRoadmap();
+}
+function dailyClaim(idx) {
+  ensureDaily();
+  const m = state.daily.ms[idx]; if (!m || m.claimed || m.cur < DAILY_DEFS[m.k].goal) return;
+  m.claimed = true;
+  const r = state.prog.region, gold = Math.round((5 + r * 8 + 6) * regionMult(r) * goldMult() * 200);   // 킬골드 ×200 상당 — 지방에 앵커
+  state.gold += gold;
+  let extra = '';
+  if (state.daily.ms.every((x) => x.claimed)) { addConsum('iv-candy'); extra = ' · 올클리어 보너스 🍬개체치사탕!'; }
+  sfx('good'); banner(`📅 미션 보상 +${fmt(gold)}💰${extra}`);
+  logEvent(`📅 일일 미션 보상 +${fmt(gold)}💰${extra}`);
+  updateHud(); save(); if (panelOpen === 'map') renderRoadmap();
+}
 const collectionGold = () => uniqueSpecies() * 0.003;
 const masteryAtk = () => 1 + masteredCount() * 0.01;
 const goldMult = () => trGold() + collectionGold();
@@ -899,6 +938,7 @@ function enemyDefeated() {
   state.dex.kills[een] = (state.dex.kills[een] || 0) + 1;
   if (state.dex.kills[een] === 100) banner(`🌟 ${BY_EN[een].name} 마스터! (처치 100)`);
   checkDexMilestones();
+  dailyProg('kill'); if (kind !== 'wave') dailyProg('boss');
 
   // 포획: 야생 5% / 보스·챔피언(강한·전설급) 1% + 방생 누적 보너스
   if (Math.random() < (kind === 'wave' ? 0.05 : 0.01 + releaseBonus())) catchSpecies(een, elv);
@@ -939,6 +979,7 @@ function catchSpecies(en, lv) {
   evolveToEligible(m);
   state.bench.push(m);
   banner(m.shiny ? `✨🎉 이로치 ${BY_EN[en].name} 포획!! 🦸 벤치에 보관` : `🎉 ${BY_EN[en].name} 포획! 🦸 벤치에 보관 (파티 세팅에서 넣으세요)`);
+  dailyProg('catch');
   if (panelOpen === 'party') renderRoster();
 }
 
@@ -1281,7 +1322,14 @@ function renderRoadmap() {
   const p = state.prog, mx = p.maxRegion || 0;
   $('panel-title').textContent = `🗺 로드맵 · 🎖${p.badges}`;
   const maxR = Math.max(REGIONS.length - 1, mx, p.region);
-  let html = `<div class="rm-now">📍 현재 <b>${locLabel()}</b><div class="rm-goal">${rmNextGoal()}</div></div><div class="rm-list">`;
+  ensureDaily();
+  const dm = state.daily.ms.map((m, i) => {
+    const def = DAILY_DEFS[m.k], goal = def.goal, done = m.cur >= goal;
+    const right = m.claimed ? '<span class="dm-got">✓ 수령</span>' : done ? `<button class="dm-claim" data-dm="${i}">🎁 보상</button>` : `<span class="dm-prog">${m.cur}/${goal}</span>`;
+    return `<div class="dm-row ${m.claimed ? 'got' : done ? 'ready' : ''}"><span>${def.icon} ${def.label(goal)}</span>${right}</div>`;
+  }).join('');
+  let html = `<div class="rm-daily"><b>📅 오늘의 미션</b> <small>자정 리셋 · 모두 완료 시 🍬보너스</small>${dm}</div>`;
+  html += `<div class="rm-now">📍 현재 <b>${locLabel()}</b><div class="rm-goal">${rmNextGoal()}</div></div><div class="rm-list">`;
   for (let r = 0; r <= maxR; r++) {
     const cleared = r < mx, isCur = r === p.region, unlocked = r <= mx;
     const rico = isCur ? '▶️' : cleared ? '✅' : (r === mx ? '🚩' : '🔒');
@@ -1313,6 +1361,7 @@ function renderRoadmap() {
   $('save-export').addEventListener('click', exportSave);
   $('save-import').addEventListener('click', importSave);
   $('sfx-toggle').addEventListener('click', () => { state.settings.sfx = !state.settings.sfx; save(); if (state.settings.sfx) sfx('good'); renderRoadmap(); });
+  $('panel-body').querySelectorAll('[data-dm]').forEach((b) => b.addEventListener('click', () => dailyClaim(+b.dataset.dm)));
 }
 // ---------- 세이브 백업/복구 ----------
 function exportSave() {
@@ -1546,6 +1595,7 @@ function raidWin() {   // enemyDefeated에서 보스 격파 시 호출
   const secs = fmtRT(clearMs);
   logEvent(`🏆 레이드 등급 ${tier} 클리어 ⏱${secs} · +${fmt(gold)}💰 · +${tokens}🏅` + (drops.length ? ' · 🎁' + drops.map((it) => defOf(it.key).name + starStr(it.star)).join(', ') : ''));
   sfx("big"); banner(`🏆 등급 ${tier} 클리어! ⏱${secs} · +${fmt(gold)}💰 · +${tokens}🏅 · 🎁${drops.length}` + (firstClear ? ' (첫 클리어 3배!)' : ''));
+  dailyProg('raid');
   if (state.raid.autoRetry) _raidRetryTier = tier;   // ♻ 자동 재도전: 승리 시 같은 등급 반복
   setTimeout(() => endRaidCleanup(), 1400);
   updateHud(); save();
@@ -1813,6 +1863,7 @@ function fuseGear(tag) {
   for (let i = state.inv.length - 1; i >= 0 && removed < 3; i--) if (state.inv[i].key === key && state.inv[i].star === st) { state.inv.splice(i, 1); removed++; }
   if (removed < 3) { banner('재료 부족(3개)'); return; }
   const rate = fuseRate(st);
+  dailyProg("fuse");
   if (Math.random() < rate) {
     addGear({ uid: 'g' + (++state.itemSeq), key, star: st + 1 });
     sfx("good"); banner(`🔧 강화 성공! ${defOf(key).name} ${starStr(st + 1)} (${Math.round(rate * 100)}%)`);
@@ -1836,6 +1887,7 @@ function fuseAll() {
       if (g.n >= 3) {
         let removed = 0;
         state.inv = state.inv.filter((it) => { if (removed < 3 && it.key === g.key && it.star === g.star) { removed++; return false; } return true; });
+        dailyProg("fuse");
         if (Math.random() < fuseRate(g.star)) { state.inv.push({ uid: 'g' + (++state.itemSeq), key: g.key, star: g.star + 1 }); succ++; }
         else { for (let k = 0; k < 2; k++) state.inv.push({ uid: 'g' + (++state.itemSeq), key: g.key, star: g.star }); fail++; }
         did = true;
@@ -1897,14 +1949,14 @@ function shopAction(act, c) {
   if (act === 'gacha' || act === 'prem') {
     if (invFull()) { banner('🎒 가방이 가득 찼어요 — 강화/판매로 정리 후 구매하세요'); return; }   // 차감 전 차단
     const cost = act === 'prem' ? c.premCost : c.gachaCost; if (state.gold < cost) { banner('골드 부족'); return; }
-    state.gold -= cost; const it = makeGear(state.prog.region, act === 'prem' ? 0.85 : 0.2); addGear(it);
+    state.gold -= cost; const it = makeGear(state.prog.region, act === 'prem' ? 0.85 : 0.2); addGear(it); dailyProg('gacha');
     lastPulls.unshift({ key: it.key, star: it.star }); if (lastPulls.length > 40) lastPulls.length = 40;
     banner(`🎁 ${defOf(it.key).name} ${starStr(it.star)} 획득!`);   // banner가 로그도 남김
   } else if (act === 'gacha10' || act === 'prem10') {
     const free = INV_MAX - state.inv.length;
     if (free < 10) { banner(`🎒 10연차는 빈 슬롯 10칸 필요 (현재 ${Math.max(0, free)}칸) — 정리 후 구매`); return; }
     const prem = act === 'prem10', cost = prem ? c.p10 : c.c10; if (state.gold < cost) { banner('골드 부족'); return; }
-    state.gold -= cost; const items = []; for (let i = 0; i < 10; i++) { const it = makeGear(state.prog.region, prem ? 0.85 : 0.2); addGear(it); items.push(it); lastPulls.unshift({ key: it.key, star: it.star }); }
+    state.gold -= cost; dailyProg('gacha', 10); const items = []; for (let i = 0; i < 10; i++) { const it = makeGear(state.prog.region, prem ? 0.85 : 0.2); addGear(it); items.push(it); lastPulls.unshift({ key: it.key, star: it.star }); }
     if (lastPulls.length > 40) lastPulls.length = 40;
     const byStar = {}; let best = items[0]; for (const it of items) { byStar[it.star] = (byStar[it.star] || 0) + 1; if (it.star > best.star) best = it; }
     const summary = Object.keys(byStar).sort((a, b) => b - a).map((s) => `${starStr(+s)}×${byStar[s]}`).join(' ');
@@ -2032,6 +2084,8 @@ function init() {
   window.addEventListener('blur', stopGachaHold);
   if (!state.started) showCharSelect();
   checkDexMilestones();   // 이미 임계를 넘긴 기존 세이브에 소급 지급
+  ensureDaily();
+  setInterval(() => { if (state.daily && state.daily.date !== dailyKey()) { ensureDaily(); banner('📅 새로운 일일 미션이 도착했어요!'); if (panelOpen === 'map') renderRoadmap(); } }, 60000);   // 자정 롤오버
   requestAnimationFrame(tick);
   setInterval(save, 5000);
   window.addEventListener('beforeunload', save);
