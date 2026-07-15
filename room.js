@@ -1950,7 +1950,9 @@ function applyOffline() {
   if (earned > 0) { state.gold += earned; const mins = Math.floor(elapsed / 60); setTimeout(() => banner(`💤 자리비운 ${mins}분 +${fmt(earned)}골드! (오프라인은 30% 효율)`), 600); }
 }
 function setupGrip() {
-  const grip = $('grip'); if (!grip) return; let resizing = false;
+  const grip = $('grip'); if (!grip) return;
+  if (!window.petAPI) { grip.style.display = 'none'; return; }   // 웹(브라우저) 실행: 창 리사이즈 그립은 Electron 전용
+  let resizing = false;
   grip.addEventListener('pointerdown', (e) => { e.preventDefault(); resizing = true; try { grip.setPointerCapture(e.pointerId); } catch (x) {} });
   grip.addEventListener('pointermove', (e) => { if (!resizing || !window.petAPI || !window.petAPI.resizeRoom) return; if (e.movementX || e.movementY) window.petAPI.resizeRoom(e.movementX, e.movementY); });
   const end = (e) => { if (resizing) { resizing = false; try { grip.releasePointerCapture(e.pointerId); } catch (x) {} } };
@@ -1992,13 +1994,13 @@ function init() {
   window.addEventListener('beforeunload', save);
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
   if (window.petAPI) window.petAPI.onCommand((cmd) => { if (cmd && cmd.type === 'roomReset') { localStorage.removeItem(SAVE_KEY); localStorage.removeItem('pkmnRoom_v2'); location.reload(); } });
-  setTimeout(checkUpdate, 8000); setInterval(checkUpdate, 6 * 3600 * 1000);   // 새 버전 알림 (기동 8초 후 + 6시간마다)
+  if (window.petAPI) { setTimeout(checkUpdate, 8000); setInterval(checkUpdate, 6 * 3600 * 1000); }   // 새 버전 알림 (데스크톱 전용 — 웹은 항상 최신)
 }
 init();
 
 // ---------- 버전/업데이트 알림 ----------
 // GAME_VERSION은 릴리스마다 package.json version과 함께 올린다(배포 프로토콜).
-const GAME_VERSION = '1.2.2';
+const GAME_VERSION = '1.2.3';
 const RELEASES_URL = 'https://github.com/lie-0022/pokemon-battle-room/releases/latest';
 function verNum(s) { const p = String(s || '').replace(/^v/, '').split('.'); return (+p[0] || 0) * 1e6 + (+p[1] || 0) * 1e3 + (+p[2] || 0); }
 async function checkUpdate() {
