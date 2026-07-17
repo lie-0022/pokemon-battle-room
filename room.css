@@ -479,6 +479,10 @@ html, body {
 .dm-prog { color: var(--muted); font-variant-numeric: tabular-nums; }
 .dm-got { color: #7CFC7C; }
 .dm-claim { background: linear-gradient(180deg, #ffd54a, #f6b73c); color: #3a2c00; border: none; border-radius: 8px; padding: 3px 10px; font-size: 11px; font-weight: 800; cursor: pointer; animation: upPulse 2.2s ease-in-out infinite; }
+.dm-streak { color: #ff9d5c; font-weight: 800; font-size: 11px; }
+.dm-shield { color: #9fd8ff; font-weight: 700; font-size: 11px; }
+.dm-copy { float: right; background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.22); color: #dfe6ff; border-radius: 8px; padding: 2px 8px; font-size: 10.5px; cursor: pointer; }
+.dm-copy:hover { background: rgba(0,0,0,.5); }
 /* 로드맵 하단 데이터(세이브 백업) 섹션 */
 .rm-data { margin-top: 10px; padding: 8px 10px; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; background: rgba(255,255,255,.04); font-size: 11px; }
 .rm-data small { color: var(--muted); }

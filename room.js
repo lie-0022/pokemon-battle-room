@@ -351,7 +351,31 @@ const DAILY_DEFS = {
   gacha: { icon: '🎁', label: (g) => `뽑기 ${g}회`, goal: 10 },
   raid: { icon: '🐲', label: (g) => `레이드 ${g}회 클리어`, goal: 1 },
 };
-const dailyKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const dayKeyOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const dailyKey = () => dayKeyOf(new Date());
+// 🔥 스트릭: 일일 미션 올클 연속일. 하루(딱 1일) 빠져도 🛡보호권이 있으면 유지(손실 회피 리텐션).
+function bumpStreak() {
+  const st = state.streak; const today = dailyKey();
+  if (st.last === today) return '';
+  const y1 = dayKeyOf(new Date(Date.now() - 864e5)), y2 = dayKeyOf(new Date(Date.now() - 2 * 864e5));
+  if (st.last === y1) st.n++;
+  else if (st.last === y2 && st.shield > 0) { st.shield--; st.n++; banner('🛡 보호권이 연속 기록을 지켰어요!'); }
+  else st.n = 1;
+  st.last = today;
+  let msg = ` · 🔥 ${st.n}일 연속`;
+  if (st.n % 7 === 0) { st.shield = Math.min(2, (st.shield || 0) + 1); addConsum('iv-candy'); msg += ' — 7일 보너스 🛡+🍬!'; }
+  return msg;
+}
+// 📋 Wordle식 결과 공유 텍스트 — 링크 없이 게임명만(광고 티 제거), 커뮤니티 댓글에 붙여넣기 좋은 4줄
+function copyResultText() {
+  ensureDaily();
+  const d = new Date();
+  const boxes = state.daily.ms.map((m) => (m.claimed || m.cur >= DAILY_DEFS[m.k].goal) ? '✅' : '⬜').join('');
+  const st = state.streak && state.streak.n > 0 ? ` · 🔥${state.streak.n}일` : '';
+  const raid = (state.raid.maxTier || 0) > 0 ? ` · 🐲${state.raid.maxTier}등급` : '';
+  const txt = `⚔️ 포켓몬 배틀룸 ${d.getMonth() + 1}/${d.getDate()}\n📅 미션 ${boxes}${st}\n🗺 ${regionName(state.prog.region)} · 🎖${state.prog.badges} · 📖${uniqueSpecies()}/${Object.keys(BY_EN).length}${raid}`;
+  navigator.clipboard.writeText(txt).then(() => banner('📋 결과 복사됨! 커뮤니티에 붙여넣어 자랑하세요'), () => banner('❌ 복사 실패'));
+}
 function ensureDaily() {
   if (!state.daily || state.daily.date !== dailyKey()) {
     const pool = ['boss', 'catch', 'fuse', 'gacha', 'raid'].sort(() => Math.random() - 0.5);
@@ -375,7 +399,7 @@ function dailyClaim(idx) {
   const r = state.prog.region, gold = Math.round((5 + r * 8 + 6) * regionMult(r) * goldMult() * 200);   // 킬골드 ×200 상당 — 지방에 앵커
   state.gold += gold;
   let extra = '';
-  if (state.daily.ms.every((x) => x.claimed)) { addConsum('iv-candy'); extra = ' · 올클리어 보너스 🍬개체치사탕!'; }
+  if (state.daily.ms.every((x) => x.claimed)) { addConsum('iv-candy'); extra = ' · 올클리어 보너스 🍬개체치사탕!' + bumpStreak(); }
   sfx('good'); banner(`📅 미션 보상 +${fmt(gold)}💰${extra}`);
   logEvent(`📅 일일 미션 보상 +${fmt(gold)}💰${extra}`);
   updateHud(); save(); if (panelOpen === 'map') renderRoadmap();
@@ -440,6 +464,7 @@ function defaultState() {
     trainer: { atk: 0, hp: 0, gold: 0, xp: 0, crit: 0, slot: 0 },
     dex: { kills: {} },
     prog: { region: 0, route: 1, wave: 1, clears: 0, maxClears: 0, badges: 0, maxRegion: 0, maxRoute: 1 },
+    streak: { n: 0, last: '', shield: 0 },   // 🔥 일일 미션 올클 연속일 · 🛡 보호권
     lastSeen: Date.now(),
   };
 }
@@ -462,6 +487,7 @@ function loadState() {
         s.tms = s.tms || {};
         s.items = s.items || {};
         s.settings = s.settings || { speed: 1 }; if (!s.settings.speed) s.settings.speed = 1; if (s.settings.autosell === undefined) s.settings.autosell = false; if (typeof s.settings.nick !== 'string') s.settings.nick = ''; if (s.settings.sfx === undefined) s.settings.sfx = false;
+        s.streak = s.streak || { n: 0, last: '', shield: 0 };
         s.rankUid = s.rankUid || '';
         s.bench = Array.isArray(s.bench) ? s.bench : [];
         if (s.started === undefined) s.started = true;
@@ -662,6 +688,8 @@ function renderSetupView(setup) {
 }
 // ---- 랭킹 패널 ----
 let rankView = 'raid', rankTier = 1, rankTierUserSet = false, _rankViewSetup = null;
+let rankWeekly = false;   // 스테이지 랭킹 '이번 주' 필터
+const weekStartMs = () => { const d = new Date(); const day = (d.getDay() + 6) % 7; d.setHours(0, 0, 0, 0); return d.getTime() - day * 864e5; };   // 월요일 00:00
 async function resubmitBests() {   // 닉네임 변경 시 기존 베스트 기록들을 새 이름으로 재등록
   if (!rankOn()) return;
   for (const t of Object.keys(state.raid.best || {})) { const tier = +t; if (state.raid.bestSetup && state.raid.bestSetup[tier]) await submitRaidScore(tier, state.raid.best[tier], state.raid.bestSetup[tier]); }
@@ -721,8 +749,9 @@ async function renderRank() {
     const rf = $('rank-refresh'); if (rf) rf.addEventListener('click', renderRank);
     const rg = $('rank-reg'); if (rg) rg.addEventListener('click', async () => { await submitRaidScore(rankTier, myBest, state.raid.bestSetup[rankTier]); renderRank(); });
   } else {
-    const rows = await fetchStageBoard();
+    let rows = await fetchStageBoard();
     if (panelOpen !== 'rank' || rankView !== 'stage' || _rankViewSetup) return;
+    if (rankWeekly && rows) rows = rows.filter((r) => (r.ts || 0) >= weekStartMs());   // 📅 이번 주(월요일 이후) 갱신 기록만 — 신규 유저도 이름 올릴 기회
     const mine = rows ? rows.findIndex((r) => r.uid === myUid) : -1;
     const stLabel = (r) => `${regionName(r.region)} R${r.route || 1} · 🎖${r.badges}`;
     let summary;
@@ -733,8 +762,10 @@ async function renderRank() {
     if (rows == null) list = '<div class="dex-sum">⚠ 오프라인 — 🔄로 다시 시도하세요.</div>';
     else if (!rows.length) list = '<div class="dex-sum">아직 기록이 없어요.</div>';
     else list = '<div class="ranklist">' + rows.map((r, i) => `<div class="rankrow ${r.uid === myUid ? 'me' : ''}"><span class="rk-n rk-${i < 3 ? 'top' : 'x'}">${i + 1}</span><span class="rk-name">${esc(r.name)}${r.uid === myUid ? ' <b>(나)</b>' : ''}</span><span class="rk-t">${stLabel(r)}</span>${r.setup ? `<button class="rk-view" data-setup="${esc(r.setup)}">세팅</button>` : ''}</div>`).join('') + '</div>';
-    body.innerHTML = rankChromeHtml() + `<div class="rsec">🗺 스테이지 랭킹 — 지방·루트(R)·배지 <button class="rk-refresh" id="rank-refresh">🔄</button></div><div class="mine-sum">${summary}</div>` + list + `<div class="rm-info">루트·챔피언 진행 시 자동 갱신됩니다. 세팅(이로치 포함)을 바꿨다면 '📤 갱신'으로 바로 반영하세요.</div>`;
+    const weekBtns = `<div class="rctrl tierpick"><button class="tierbtn ${!rankWeekly ? 'on' : ''}" data-rankw="0">전체</button><button class="tierbtn ${rankWeekly ? 'on' : ''}" data-rankw="1">📅 이번 주</button></div>`;
+    body.innerHTML = rankChromeHtml() + `<div class="rsec">🗺 스테이지 랭킹 — 지방·루트(R)·배지 <button class="rk-refresh" id="rank-refresh">🔄</button></div>` + weekBtns + `<div class="mine-sum">${summary}</div>` + list + `<div class="rm-info">루트·챔피언 진행 시 자동 갱신됩니다. 세팅(이로치 포함)을 바꿨다면 '📤 갱신'으로 바로 반영하세요.${rankWeekly ? ' · <b>이번 주</b> = 월요일 이후 갱신된 기록' : ''}</div>`;
     wireRankChrome();
+    body.querySelectorAll('[data-rankw]').forEach((b) => b.addEventListener('click', () => { rankWeekly = b.dataset.rankw === '1'; renderRank(); }));
     body.querySelectorAll('.rk-view').forEach((b) => b.addEventListener('click', () => { _rankViewSetup = decodeSetup(b.dataset.setup); renderRank(); }));
     const rf = $('rank-refresh'); if (rf) rf.addEventListener('click', renderRank);
     const rg = $('rank-reg'); if (rg) rg.addEventListener('click', async () => { await submitStageScore(); renderRank(); });
@@ -1329,7 +1360,9 @@ function renderRoadmap() {
     const right = m.claimed ? '<span class="dm-got">✓ 수령</span>' : done ? `<button class="dm-claim" data-dm="${i}">🎁 보상</button>` : `<span class="dm-prog">${m.cur}/${goal}</span>`;
     return `<div class="dm-row ${m.claimed ? 'got' : done ? 'ready' : ''}"><span>${def.icon} ${def.label(goal)}</span>${right}</div>`;
   }).join('');
-  let html = `<div class="rm-daily"><b>📅 오늘의 미션</b> <small>자정 리셋 · 모두 완료 시 🍬보너스</small>${dm}</div>`;
+  const stk = state.streak || { n: 0, shield: 0 };
+  const stkBadge = (stk.n > 0 ? ` <span class="dm-streak">🔥 ${stk.n}일</span>` : '') + (stk.shield > 0 ? ` <span class="dm-shield">🛡×${stk.shield}</span>` : '');
+  let html = `<div class="rm-daily"><b>📅 오늘의 미션</b>${stkBadge} <button class="dm-copy" id="dm-copy" title="Wordle처럼 오늘 결과를 텍스트로 복사">📋 결과 복사</button><br><small>자정 리셋 · 모두 완료 시 🍬보너스 · 7일 연속 시 🛡보호권</small>${dm}</div>`;
   html += `<div class="rm-now">📍 현재 <b>${locLabel()}</b><div class="rm-goal">${rmNextGoal()}</div></div><div class="rm-list">`;
   for (let r = 0; r <= maxR; r++) {
     const cleared = r < mx, isCur = r === p.region, unlocked = r <= mx;
@@ -1363,6 +1396,7 @@ function renderRoadmap() {
   $('save-import').addEventListener('click', importSave);
   $('sfx-toggle').addEventListener('click', () => { state.settings.sfx = !state.settings.sfx; save(); if (state.settings.sfx) sfx('good'); renderRoadmap(); });
   $('panel-body').querySelectorAll('[data-dm]').forEach((b) => b.addEventListener('click', () => dailyClaim(+b.dataset.dm)));
+  const dc = $('dm-copy'); if (dc) dc.addEventListener('click', copyResultText);
 }
 // ---------- 📤 자랑 카드 (공유 이미지 — 유저의 자랑이 곧 홍보) ----------
 function loadImg(src) { return new Promise((res) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = () => res(null); im.src = src; setTimeout(() => res(null), 4000); }); }
@@ -2187,7 +2221,7 @@ function sfx(kind) {
 
 // ---------- 버전/업데이트 알림 ----------
 // GAME_VERSION은 릴리스마다 package.json version과 함께 올린다(배포 프로토콜).
-const GAME_VERSION = '1.3.1';
+const GAME_VERSION = '1.4.0';
 const RELEASES_URL = 'https://github.com/lie-0022/pokemon-battle-room/releases/latest';
 function verNum(s) { const p = String(s || '').replace(/^v/, '').split('.'); return (+p[0] || 0) * 1e6 + (+p[1] || 0) * 1e3 + (+p[2] || 0); }
 async function checkUpdate() {
