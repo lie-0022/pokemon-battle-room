@@ -1133,7 +1133,7 @@ function renderRoster() {
   if (releaseMode) benchHtml += `<div class="rctrl"><button class="rmove rel ${releaseSel.size ? '' : 'off'}" id="bench-relgo">👋 선택한 ${releaseSel.size}마리 놓아주기</button></div>`;
   benchHtml += state.bench.length ? '<div class="rrow wrap">' + benchSorted.map((m, i) => { const sp = spOf(m); const picked = releaseMode && releaseSel.has(m); return `<button class="rcard sm ${picked ? 'relpick' : (rosterSel === m ? 'sel' : '')}${m.shiny ? ' shiny' : ''}" data-bench="${i}">${picked ? '<span class="pickmark">✓</span>' : ''}${shinyMark(m)}${ivMark(m)}<img src="${memThumb(m)}" data-fb="${memThumbFb(m)}" alt=""><span>${sp.name}</span><small>Lv.${m.lv}</small></button>`; }).join('') + '</div>'
     : '<div class="dex-sum">야생 포켓몬을 처치하면 일정 확률로 잡혀서 여기 모입니다.</div>';
-  const controls = '<div class="rctrl"><button class="rmove" id="auto-all">✨ 파티 전체 자동 (장비 + 기술)</button></div>';
+  const controls = '<div class="rctrl"><button class="rmove" id="auto-all">✨ 파티 전체 자동 (장비 + 기술)</button><button class="rmove" id="share-card">📤 자랑 카드</button></div>';
   // 선택 정보(roster-detail)를 벤치 위에 배치 — 파티 누르면 바로 위에서 보임
   body.innerHTML = partyHtml + controls + '<div id="roster-detail"></div>' + benchHtml;
 
@@ -1147,6 +1147,7 @@ function renderRoster() {
   const rm = $('bench-relmode'); if (rm) rm.addEventListener('click', () => { releaseMode = !releaseMode; if (!releaseMode) releaseSel.clear(); renderRoster(); });
   const rg = $('bench-relgo'); if (rg && !rg.classList.contains('off')) rg.addEventListener('click', releaseSelected);
   const aa = $('auto-all'); if (aa) aa.addEventListener('click', () => { autoAllParty(); renderRoster(); });
+  const sc = $('share-card'); if (sc) sc.addEventListener('click', shareCard);
   renderRosterDetail();
 }
 function renderRosterDetail() {
@@ -1363,6 +1364,56 @@ function renderRoadmap() {
   $('sfx-toggle').addEventListener('click', () => { state.settings.sfx = !state.settings.sfx; save(); if (state.settings.sfx) sfx('good'); renderRoadmap(); });
   $('panel-body').querySelectorAll('[data-dm]').forEach((b) => b.addEventListener('click', () => dailyClaim(+b.dataset.dm)));
 }
+// ---------- 📤 자랑 카드 (공유 이미지 — 유저의 자랑이 곧 홍보) ----------
+function loadImg(src) { return new Promise((res) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = () => res(null); im.src = src; setTimeout(() => res(null), 4000); }); }
+async function shareCard() {
+  banner('📤 자랑 카드 만드는 중…');
+  const W = 840, H = 440, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const x = cv.getContext('2d');
+  // 배경 — 게임 무드(밤하늘 그라데이션 + 바닥)
+  const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#171a2e'); g.addColorStop(0.62, '#232a4a'); g.addColorStop(0.63, '#2e3450'); g.addColorStop(1, '#1c2138');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.fillStyle = 'rgba(255,255,255,.05)'; for (let i = 0; i < 40; i++) x.fillRect((i * 173 + 37) % W, (i * 97 + 21) % 250, 2, 2);   // 별
+  // 헤더
+  x.fillStyle = '#ffcb05'; x.font = '800 30px "Segoe UI", sans-serif'; x.textBaseline = 'top';
+  x.fillText('⚔️ 포켓몬 배틀룸', 28, 22);
+  x.fillStyle = '#fff'; x.font = '700 22px "Segoe UI", sans-serif';
+  const nick = state.settings.nick || '트레이너';
+  x.fillText(`${nick}의 파티`, 30, 62);
+  // 진행 요약
+  const dexTotal = Object.keys(BY_EN).length;
+  x.fillStyle = '#b9c2e8'; x.font = '600 16px "Segoe UI", sans-serif';
+  x.fillText(`🗺 ${locLabel()}   ·   🎖 배지 ${state.prog.badges}   ·   📖 도감 ${uniqueSpecies()}/${dexTotal}   ·   ⚔ 전투력 ${fmt(state.party.reduce((s, m) => s + memberDPS(m), 0))}`, 30, 94);
+  // 파티 3마리
+  const members = state.party.slice(0, 3);
+  const imgs = await Promise.all(members.map((m) => loadImg(m.shiny ? staticUrlS(spOf(m)) : staticUrl(spOf(m)))));
+  members.forEach((m, i) => {
+    const bx = 40 + i * 260, by = 140, sp = spOf(m);
+    x.fillStyle = 'rgba(255,255,255,.06)'; x.beginPath(); x.roundRect(bx, by, 236, 210, 14); x.fill();
+    x.strokeStyle = m.shiny ? 'rgba(255,203,5,.5)' : 'rgba(255,255,255,.14)'; x.lineWidth = 2; x.beginPath(); x.roundRect(bx, by, 236, 210, 14); x.stroke();
+    const im = imgs[i];
+    if (im) { const s = Math.min(120 / im.width, 120 / im.height, 3); const dw = im.width * s, dh = im.height * s; x.imageSmoothingEnabled = false; x.drawImage(im, bx + 118 - dw / 2, by + 78 - dh / 2, dw, dh); }
+    else { x.font = '52px serif'; x.fillText('🔴', bx + 92, by + 40); }
+    x.textAlign = 'center'; x.fillStyle = '#fff'; x.font = '800 19px "Segoe UI", sans-serif';
+    x.fillText(`${m.shiny ? '✨ ' : ''}${sp.name}${(m.iv | 0) >= 31 ? ' 👑' : ''}`, bx + 118, by + 148);
+    x.fillStyle = '#ffcb05'; x.font = '700 15px "Segoe UI", sans-serif';
+    x.fillText(`Lv.${m.lv}`, bx + 118, by + 174);
+    x.textAlign = 'left';
+  });
+  // 푸터 CTA
+  x.fillStyle = 'rgba(0,0,0,.35)'; x.fillRect(0, H - 58, W, 58);
+  x.fillStyle = '#ffe89a'; x.font = '700 17px "Segoe UI", sans-serif';
+  x.fillText('무료 PC 방치형 팬게임 — 커뮤니티에서 "포켓몬 배틀룸" 검색', 28, H - 44);
+  x.fillStyle = '#8f98c0'; x.font = '600 13px "Segoe UI", sans-serif';
+  x.fillText('켜두면 알아서 크는 오토배틀 · 1세대 151 · 레이드 · 온라인 랭킹', 28, H - 21);
+  cv.toBlob(async (blob) => {
+    if (!blob) { banner('❌ 카드 생성 실패'); return; }
+    try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); banner('📋 자랑 카드가 클립보드에! 커뮤니티에 붙여넣기 하세요 (파일로도 저장됨)'); } catch (e) { banner('📤 자랑 카드를 파일로 저장했어요!'); }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `포켓몬배틀룸-${(state.settings.nick || '트레이너')}-자랑카드.png`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  }, 'image/png');
+}
+
 // ---------- 세이브 백업/복구 ----------
 function exportSave() {
   save();   // 최신 상태 반영 후 내보내기
