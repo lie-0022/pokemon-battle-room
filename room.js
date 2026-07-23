@@ -21,6 +21,12 @@ const uniq = (a) => [...new Set(a)];
 const fmt = (n) => {
   n = Math.floor(n);
   if (n < 0) return '-' + fmt(-n);
+  if (window.I18N && I18N.isEN()) {   // 영어: K/M/B/T
+    if (n < 1e4) return n.toLocaleString('en-US');
+    const U = [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
+    for (const [d, s] of U) if (n >= d) { const v = n / d; return (v < 100 ? v.toFixed(1).replace(/\.0$/, '') : Math.floor(v).toLocaleString('en-US')) + s; }
+    return n.toLocaleString('en-US');
+  }
   if (n < 1e4) return n.toLocaleString('en-US');
   if (n < 1e8) { const v = n / 1e4; return (v < 100 ? v.toFixed(1).replace(/\.0$/, '') : Math.floor(v).toLocaleString('en-US')) + '만'; }
   if (n < 1e12) { const v = n / 1e8; return (v < 100 ? v.toFixed(1).replace(/\.0$/, '') : Math.floor(v).toLocaleString('en-US')) + '억'; }
@@ -457,7 +463,7 @@ function defaultState() {
     version: 10, gold: 0, candy: 0, started: false, itemSeq: 0, inv: [], tms: {}, items: {},
     released: 0,   // 누적 방생 수 → 보스·챔피언 포획 확률 영구 보너스
     raid: { team: [], maxTier: 0, best: {}, bestSetup: {}, cleared: {}, token: 0, presets: [null, null, null], autoRetry: false },   // 레이드: 팀·최고등급·베스트타임·베스트세팅(닉변경 재등록용)·🏅메달·팀 프리셋(3)·자동 재도전
-    settings: { speed: 1, autosell: false, nick: '', sfx: false },   // nick: 온라인 랭킹 닉네임 · sfx: 효과음(기본 꺼짐)
+    settings: { speed: 1, autosell: false, nick: '', sfx: false, lang: (window.I18N ? I18N.autoLang() : 'ko') },   // nick: 랭킹 닉네임 · sfx: 효과음(기본 꺼짐) · lang: ko|en(첫 실행 시 브라우저 언어로 자동)
     rankUid: '',   // 온라인 랭킹 식별자(설치당 고정, RTDB 인증 없음)
     party: [newMember('pikachu', 5)], bench: [],
     up: { atk: 0, hp: 0, spd: 0 },
@@ -488,6 +494,7 @@ function loadState() {
         s.items = s.items || {};
         s.settings = s.settings || { speed: 1 }; if (!s.settings.speed) s.settings.speed = 1; if (s.settings.autosell === undefined) s.settings.autosell = false; if (typeof s.settings.nick !== 'string') s.settings.nick = ''; if (s.settings.sfx === undefined) s.settings.sfx = false;
         s.streak = s.streak || { n: 0, last: '', shield: 0 };
+        if (s.settings.lang !== 'ko' && s.settings.lang !== 'en') s.settings.lang = (window.I18N ? I18N.autoLang() : 'ko');
         s.rankUid = s.rankUid || '';
         s.bench = Array.isArray(s.bench) ? s.bench : [];
         if (s.started === undefined) s.started = true;
@@ -515,6 +522,7 @@ function loadState() {
   return defaultState();
 }
 let state = loadState();
+if (window.I18N) I18N.setLang(state.settings.lang);   // 🌐 첫 렌더(fmt 단위 등) 전에 언어 확정
 function save() { state.lastSeen = Date.now(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {} }
 
 // ============================================================
@@ -1389,12 +1397,14 @@ function renderRoadmap() {
     <button id="save-export">📤 세이브 내보내기</button>
     <button id="save-import">📥 세이브 가져오기</button>
     <button id="sfx-toggle">${state.settings.sfx ? '🔊 효과음 켬' : '🔇 효과음 꺼짐'}</button>
+    <button id="lang-toggle">${window.I18N ? I18N.label() : '🌐'}</button>
   </div><small>PC 교체·재설치 대비 백업. 가져오면 현재 진행을 덮어씁니다. 효과음은 보스·강화 등 이벤트만 울려요.</small></div>`;
   $('panel-body').innerHTML = html;
   $('panel-body').querySelectorAll('[data-travel]').forEach((b) => b.addEventListener('click', () => travelTo(+b.dataset.travel)));
   $('save-export').addEventListener('click', exportSave);
   $('save-import').addEventListener('click', importSave);
   $('sfx-toggle').addEventListener('click', () => { state.settings.sfx = !state.settings.sfx; save(); if (state.settings.sfx) sfx('good'); renderRoadmap(); });
+  { const lt = $('lang-toggle'); if (lt && window.I18N) lt.addEventListener('click', () => I18N.toggle()); }
   $('panel-body').querySelectorAll('[data-dm]').forEach((b) => b.addEventListener('click', () => dailyClaim(+b.dataset.dm)));
   const dc = $('dm-copy'); if (dc) dc.addEventListener('click', copyResultText);
 }
@@ -2187,6 +2197,10 @@ function init() {
   if (!state.started) showCharSelect();
   checkDexMilestones();   // 이미 임계를 넘긴 기존 세이브에 소급 지급
   ensureDaily();
+  if (window.I18N) {               // 🌐 영어면 DOM 실시간 번역 시작
+    I18N.onToggle = (l) => { state.settings.lang = l; save(); location.reload(); };
+    I18N.apply();
+  }
   setInterval(() => { if (state.daily && state.daily.date !== dailyKey()) { ensureDaily(); banner('📅 새로운 일일 미션이 도착했어요!'); if (panelOpen === 'map') renderRoadmap(); } }, 60000);   // 자정 롤오버
   requestAnimationFrame(tick);
   setInterval(save, 5000);
@@ -2221,7 +2235,7 @@ function sfx(kind) {
 
 // ---------- 버전/업데이트 알림 ----------
 // GAME_VERSION은 릴리스마다 package.json version과 함께 올린다(배포 프로토콜).
-const GAME_VERSION = '1.4.0';
+const GAME_VERSION = '1.5.0';
 const RELEASES_URL = 'https://github.com/lie-0022/pokemon-battle-room/releases/latest';
 function verNum(s) { const p = String(s || '').replace(/^v/, '').split('.'); return (+p[0] || 0) * 1e6 + (+p[1] || 0) * 1e3 + (+p[2] || 0); }
 async function checkUpdate() {
