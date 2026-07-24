@@ -41,7 +41,11 @@ app.whenReady().then(async () => {
 
   console.log('캡처 시작');
   await js(`(function(){try{closePanel()}catch(e){}})()`);
+  win.setSize(W, 560);                                    // 전투 컷만 실제 도킹 크기로 — 하늘 여백 줄이기
+  await wait(800);
   await shot('01-battle', 2000);                          // 전투 화면
+  win.setSize(W, H);                                      // 패널 컷은 다시 길게(내용이 많이 보이게)
+  await wait(800);
 
   await js(`openPanel('party')`);
   await shot('02-party');                                 // 파티 · 기술 세팅
