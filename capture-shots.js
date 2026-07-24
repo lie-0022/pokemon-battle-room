@@ -36,7 +36,7 @@ app.whenReady().then(async () => {
 
   // 웰컴백/스타터 오버레이 닫기 + 배속 올려 전투가 활발한 순간을 잡기
   await js(`(function(){try{var c=document.getElementById('charselect'); if(c) c.classList.add('hidden');}catch(e){}
-    try{state.settings.speed=4;updateSpeedBtn&&updateSpeedBtn();}catch(e){}})()`);
+    try{state.settings.speed=3;updateSpeedBtn&&updateSpeedBtn();}catch(e){}})()`);
   await wait(1200);
 
   console.log('캡처 시작');

@@ -27,7 +27,7 @@ app.whenReady().then(async () => {
   // 배속 올려 전투를 생동감 있게, 혹시 패널 열려있으면 닫기
   try {
     await win.webContents.executeJavaScript(
-      `(function(){try{ if(window.state){ state.settings=state.settings||{}; state.settings.speed=4; } if(typeof closePanel==='function') closePanel(); }catch(e){}})()`
+      `(function(){try{ if(window.state){ state.settings=state.settings||{}; state.settings.speed=3; } if(typeof closePanel==='function') closePanel(); }catch(e){}})()`
     );
   } catch (e) {}
   await new Promise((r) => setTimeout(r, 800));

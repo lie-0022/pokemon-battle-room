@@ -1,6 +1,6 @@
 {
   "name": "pokemon-desktop-pet",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "바탕화면을 돌아다니는 도트 포켓몬 데스크톱 펫 + 배틀룸 (Electron)",
   "main": "main.js",
   "scripts": {

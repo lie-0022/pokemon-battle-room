@@ -492,7 +492,9 @@ function loadState() {
         s.released = s.released || 0;
         s.tms = s.tms || {};
         s.items = s.items || {};
-        s.settings = s.settings || { speed: 1 }; if (!s.settings.speed) s.settings.speed = 1; if (s.settings.autosell === undefined) s.settings.autosell = false; if (typeof s.settings.nick !== 'string') s.settings.nick = ''; if (s.settings.sfx === undefined) s.settings.sfx = false;
+        s.settings = s.settings || { speed: 1 }; if (!s.settings.speed) s.settings.speed = 1;
+        if (![1, 2, 3].includes(s.settings.speed)) s.settings.speed = 3;   // 구버전 ×4·×8 세이브 보정
+        if (s.settings.autosell === undefined) s.settings.autosell = false; if (typeof s.settings.nick !== 'string') s.settings.nick = ''; if (s.settings.sfx === undefined) s.settings.sfx = false;
         s.streak = s.streak || { n: 0, last: '', shield: 0 };
         if (s.settings.lang !== 'ko' && s.settings.lang !== 'en') s.settings.lang = (window.I18N ? I18N.autoLang() : 'ko');
         s.rankUid = s.rankUid || '';
@@ -786,7 +788,7 @@ let benchSort = 'dex';       // 벤치 정렬: 'dex'(도감순) | 'level'(레벨
 let dexShowAll = false;      // 도감: 미수집 종까지 표시(완성도 확인)
 let releaseMode = false;     // 벤치 선택 방생 모드
 const releaseSel = new Set();// 선택 방생 대상(멤버 참조)
-const SPD = () => (state.settings && state.settings.speed) || 1;   // 배속(1/2/4)
+const SPD = () => (state.settings && state.settings.speed) || 1;   // 배속(1/2/3)
 const heroesEl = () => $('heroes');
 const enemiesEl = () => $('enemies');
 const getMax = (f) => (f === enemy ? f.maxHp : mMaxHp(f.member));
@@ -2080,7 +2082,7 @@ function showFirstTips(en) {
   el.innerHTML = `<div class="cs-title">🎉 ${BY_EN[en].name}와(과) 출발!</div>
     <div class="cs-tips">
       <div>⚔️ 전투는 <b>자동</b> — 켜두면 알아서 지방을 정복해요</div>
-      <div>⏩ 상단 <b>배속</b> 버튼으로 ×1~×8 빠르게</div>
+      <div>⏩ 상단 <b>배속</b> 버튼으로 ×1~×3 빠르게</div>
       <div>🦸 파티·기술, 🎒 장비는 <b>✨ 자동 세팅</b>이 다 해줘요</div>
       <div>💤 꺼두어도 <b>오프라인 골드</b>가 쌓여요</div>
     </div><button class="cs-go">시작하기!</button>`;
@@ -2168,10 +2170,11 @@ function setupGrip() {
 // ============================================================
 // 전투 배속
 // ============================================================
+const SPEED_STEPS = [1, 2, 3];   // 배속은 ×3까지 (그 이상은 연출이 뭉개지고 체감 이득도 적음)
 function updateSpeedBtn() { const b = $('speed-btn'); if (b) b.textContent = '⏩×' + SPD(); }
 function cycleSpeed() {
-  const order = [1, 2, 4, 8]; const cur = order.indexOf(SPD());
-  state.settings.speed = order[(cur + 1) % order.length];
+  const cur = SPEED_STEPS.indexOf(SPD());
+  state.settings.speed = SPEED_STEPS[(cur + 1) % SPEED_STEPS.length];
   updateSpeedBtn(); save();
 }
 
@@ -2235,7 +2238,7 @@ function sfx(kind) {
 
 // ---------- 버전/업데이트 알림 ----------
 // GAME_VERSION은 릴리스마다 package.json version과 함께 올린다(배포 프로토콜).
-const GAME_VERSION = '1.6.0';
+const GAME_VERSION = '1.6.1';
 const RELEASES_URL = 'https://github.com/lie-0022/pokemon-battle-room/releases/latest';
 function verNum(s) { const p = String(s || '').replace(/^v/, '').split('.'); return (+p[0] || 0) * 1e6 + (+p[1] || 0) * 1e3 + (+p[2] || 0); }
 async function checkUpdate() {

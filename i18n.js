@@ -131,7 +131,7 @@
     '팀 전체 자동(장비+기술)': 'Auto-setup team (gear + moves)',
     '같은 타입 3마리+ 시너지': '3+ same type = synergy',
     '개 한번에 · 10% 할인': ' at once · 10% off',
-    '버튼으로 ×1~×8 빠르게': ' button speeds battles ×1–×8',
+    '버튼으로 ×1~×3 빠르게': ' button speeds battles ×1–×3',
     '효율 — 켜두면 100%)': ' rate — running it live earns 100%)',
     '완료! 🗺에서 보상 확인': 'done! Claim rewards in 🗺',
     '월요일 이후 갱신된 기록': 'records updated since Monday',

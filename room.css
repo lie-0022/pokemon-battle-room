@@ -45,7 +45,8 @@ html, body {
 }
 #topbar .title { flex: 0 0 auto; }
 #topbar .stat { flex: 0 0 auto; }
-#topbar .title { font-weight: 800; letter-spacing: .3px; }
+#topbar .title { font-weight: 800; letter-spacing: .3px; display: flex; align-items: center; }
+#topbar .title img { width: 16px; height: 16px; display: block; image-rendering: auto; }
 #topbar .stat { display: inline-flex; align-items: center; gap: 3px; background: rgba(0,0,0,.25);
   padding: 2px 8px; border-radius: 10px; font-size: 12px; }
 #topbar .stat b { color: var(--gold); }
