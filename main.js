@@ -6,6 +6,7 @@
 // ============================================================
 const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage, shell } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 let petWin = null;
 let roomWin = null;
@@ -28,6 +29,7 @@ let roomCurW = 460, roomCurH = 660;
 function createPetWindow() {
   const wa = screen.getPrimaryDisplay().workArea;
   petWin = new BrowserWindow({
+    icon: path.join(__dirname, 'icon.png'),
     x: wa.x, y: wa.y, width: wa.width, height: wa.height,
     transparent: true, frame: false, resizable: false, movable: false,
     minimizable: false, maximizable: false, skipTaskbar: true,
@@ -69,6 +71,7 @@ function createRoomWindow() {
   const x = Math.round(wa.x + wa.width - w - 6);    // 오른쪽 도킹
   const y = Math.round(wa.y + wa.height - h - 6);   // 아래 도킹
   roomWin = new BrowserWindow({
+    icon: path.join(__dirname, 'icon.png'),
     x, y, width: w, height: h,
     transparent: true, frame: false,
     resizable: true,                       // 창 가장자리 드래그로 자유 리사이즈 + 커스텀 그립 병행
@@ -177,9 +180,28 @@ function buildTrayMenu() {
       click: (item) => { interact = item.checked; sendPet({ type: 'interact', value: interact }); },
     },
     { type: 'separator' },
+    {
+      label: '🚀 컴퓨터 켤 때 자동 실행', type: 'checkbox', checked: isAutoLaunch(),
+      click: (item) => { setAutoLaunch(item.checked); buildTrayMenu(); },
+    },
+    { type: 'separator' },
     { label: '❌ 종료', role: 'quit' },
   ]);
   tray.setContextMenu(menu);
+}
+
+// ---------- 시작프로그램 등록 (개발 중엔 무시 — 패키징된 앱만) ----------
+const isAutoLaunch = () => { try { return app.getLoginItemSettings().openAtLogin; } catch (e) { return false; } };
+function setAutoLaunch(on) {
+  if (!app.isPackaged) return;                    // npm start로 띄운 개발본은 등록하지 않음
+  try { app.setLoginItemSettings({ openAtLogin: !!on, args: [] }); } catch (e) {}
+}
+// 최초 실행 시 1회만 자동 실행을 켠다(이후엔 유저가 트레이에서 끈 걸 존중)
+function initAutoLaunchOnce() {
+  if (!app.isPackaged) return;
+  const flag = path.join(app.getPath('userData'), 'autolaunch-init');
+  if (fs.existsSync(flag)) return;
+  try { fs.writeFileSync(flag, '1'); setAutoLaunch(true); } catch (e) {}
 }
 
 function resetRoomPosition() { setRoomSize('v-m'); }
@@ -217,6 +239,7 @@ app.whenReady().then(() => {
   createPetWindow();
   createRoomWindow();
   createTray();
+  initAutoLaunchOnce();      // 설치 후 첫 실행에만 '컴퓨터 켤 때 자동 실행'을 켠다
 });
 
 app.on('window-all-closed', () => { /* 트레이 상주: 자동 종료 안 함 */ });

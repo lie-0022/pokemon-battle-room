@@ -2235,7 +2235,7 @@ function sfx(kind) {
 
 // ---------- 버전/업데이트 알림 ----------
 // GAME_VERSION은 릴리스마다 package.json version과 함께 올린다(배포 프로토콜).
-const GAME_VERSION = '1.5.0';
+const GAME_VERSION = '1.6.0';
 const RELEASES_URL = 'https://github.com/lie-0022/pokemon-battle-room/releases/latest';
 function verNum(s) { const p = String(s || '').replace(/^v/, '').split('.'); return (+p[0] || 0) * 1e6 + (+p[1] || 0) * 1e3 + (+p[2] || 0); }
 async function checkUpdate() {
